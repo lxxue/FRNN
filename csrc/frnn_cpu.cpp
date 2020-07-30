@@ -1,6 +1,7 @@
 #include <torch/extension.h>
 #include <queue>
 #include <tuple>
+#include "grid.h"
 
 // fixed radius nearest neighbor search using brute force O(n^2) method
 // used as baseline & ground truth
@@ -12,6 +13,7 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCpu(
     const at::Tensor& lengths2,
     int K,
     float r2) {
+
     
     const int N = p1.size(0);
     const int P1 = p1.size(1);
@@ -117,7 +119,9 @@ std::tuple<at::Tensor, at::Tensor> KNearestNeighborIdxCpu(
 }
 
 
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("knn_bf_cpu", &KNearestNeighborIdxCpu, "Brute Force KNN Search on CPU");
     m.def("frnn_bf_cpu", &FRNNBruteForceCpu, "Brute Force Fixed Radius Nearest Neighbor Search on CPU");
+    m.def("grid_test", &TestGrid, "");
 }
