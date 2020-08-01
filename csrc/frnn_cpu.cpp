@@ -123,5 +123,5 @@ std::tuple<at::Tensor, at::Tensor> KNearestNeighborIdxCpu(
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("knn_bf_cpu", &KNearestNeighborIdxCpu, "Brute Force KNN Search on CPU");
     m.def("frnn_bf_cpu", &FRNNBruteForceCpu, "Brute Force Fixed Radius Nearest Neighbor Search on CPU");
-    m.def("grid_test", &TestGrid, "");
+    m.def("grid_test", &TestGrid, "Test Grid on CPU");
 }

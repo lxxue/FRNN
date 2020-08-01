@@ -1,12 +1,6 @@
-#include <torch/extension.h>
 #include <tuple>
-
-#define CHECK_CUDA(x) TORCH_CHECK(x.is_cuda(), #x "must be a CUDA tensor.")
-#define CHECK_CONTIGUOUS(x) \
-  TORCH_CHECK(x.is_contiguous(), #x "must be contiguous.")
-#define CHECK_CONTIGUOUS_CUDA(x) \
-  CHECK_CUDA(x);                 \
-  CHECK_CONTIGUOUS(x)
+#include "utils/check.h"
+#include "grid.h"
 
 std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCuda(
     const at::Tensor& p1,
@@ -34,4 +28,6 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCuda(
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("frnn_bf_gpu", &FRNNBruteForceGpu, "Brute Force Fixed Radius Nearest Neighbor Search on GPU");
+    m.def("grid_test_gpu", &TestGridCUDA, "Grid Test on GPU");
+    m.def("tensor_test", &TensorTest);
 }

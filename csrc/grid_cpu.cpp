@@ -2,23 +2,21 @@
 #include <iostream>
 #include <queue>
 #include "grid.h"
-
-
-
-
-
+#include "grid.cuh"
 
 void SetupGridParams(
     const at::Tensor Points,
     float cell_size,
     GridParams& params) {
     // no documentation for at::max so I just do it myself
+    std::cout << "setup grid params" << std::endl;
     int num_points = Points.size(0);
     auto Points_a = Points.accessor<float, 2>();
     // assume there is at least one point in the cloud
     params.gridMin.x = params.gridMax.x = Points_a[0][0];
     params.gridMin.y = params.gridMax.y = Points_a[0][1];
     params.gridMin.z = params.gridMax.z = Points_a[0][2];
+    std::cout << "grid for loop starts" << std::endl;
     for (int i = 1; i < num_points; ++i) {
         params.gridMin.x = std::min(params.gridMin.x, Points_a[i][0]);
         params.gridMax.x = std::max(params.gridMax.x, Points_a[i][0]);
@@ -27,15 +25,19 @@ void SetupGridParams(
         params.gridMin.z = std::min(params.gridMin.z, Points_a[i][2]);
         params.gridMax.z = std::max(params.gridMax.z, Points_a[i][2]);
     }
+    std::cout << "grid min max done" << std::endl;
     params.gridSize = params.gridMax - params.gridMin;
     params.gridCellSize = cell_size;
     params.gridRes.x = (int)(params.gridSize.x / cell_size) + 1;
     params.gridRes.y = (int)(params.gridSize.y / cell_size) + 1;
     params.gridRes.z = (int)(params.gridSize.z / cell_size) + 1;
     params.gridDelta = 1 / cell_size;
+    std::cout << "grid delta done" << std::endl;
 
     params.gridTotal = params.gridRes.x * params.gridRes.y * params.gridRes.z;
     params.gridSrch = 1;
+
+    std::cout << "grid srch done" << std::endl;
 
     // params.gridSrch = std::floor(2*search_radius/params.gridCellSize) + 1;
     // if (params.gridSrch < 3) params.gridSrch = 3; 
@@ -49,9 +51,7 @@ void SetupGridParams(
     //         }
     //     }
     // }
-
 }
-
 
 int getGridCell(float x, float y, float z, int3& gc, GridParams& params) {
     gc.x = (int) ((x - params.gridMin.x) * params.gridDelta);
@@ -61,7 +61,7 @@ int getGridCell(float x, float y, float z, int3& gc, GridParams& params) {
     return (gc.x*params.gridRes.y + gc.y)*params.gridRes.z + gc.z;
 }
 
-void InsertPoints(const at::Tensor& Points, at::Tensor Grid, at::Tensor GridCnt, 
+void InsertPoints(const at::Tensor Points, at::Tensor Grid, at::Tensor GridCnt, 
                   at::Tensor GridCell, at::Tensor GridNext, GridParams& params) {
     auto Points_a = Points.accessor<float, 2>();
     auto Grid_a = Grid.accessor<int, 3>();
@@ -164,8 +164,8 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsGrid(
     return std::make_tuple(idxs, dists);
 }
 
-std::tuple<at::Tensor, at::Tensor> TestGrid(
-    const at::Tensor& Points, int K, float r) {
+at::Tensor TestGrid(
+    const at::Tensor Points, int K, float r) {
     std::cout << "enter TestGrid" << std::endl;
     float r2 = r * r;
     // The ideal grid to search on one dimension should be 2~4. We choose 3 here. 
@@ -189,8 +189,6 @@ std::tuple<at::Tensor, at::Tensor> TestGrid(
     InsertPoints(Points, Grid, GridCnt, GridCell, GridNext, params);
     std::cout << "points inserted" << std::endl;
 
-    return FindNbrsGrid(Points, Grid, GridNext, GridCell, params, K, r2);
-    
     // auto GridCnt_a = GridCnt.accessor<int, 3>();
     // for (int x=1; x<params.gridRes.x-1; ++x) {
     //     for (int y=1; y<params.gridRes.y-1; ++y) {
@@ -202,4 +200,8 @@ std::tuple<at::Tensor, at::Tensor> TestGrid(
     //         }
     //     }
     // }
+    
+    
+    //return FindNbrsGrid(Points, Grid, GridNext, GridCell, params, K, r2);
+    return GridCnt;
 }

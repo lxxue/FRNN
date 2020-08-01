@@ -42,8 +42,8 @@ setup(
     # include_dirs=include_dirs,
     # ext_modules=get_extensions(),
     ext_modules=[
-        CppExtension('FRNN.cpu', ['csrc/frnn_cpu.cpp', 'csrc/grid_cpu.cpp']),
-        CUDAExtension('FRNN.cuda', ['csrc/frnn_cuda.cpp', 'csrc/frnn.cu']),
+        CUDAExtension('FRNN.cpu', ['csrc/frnn_cpu.cpp', 'csrc/grid_cpu.cpp', 'csrc/grid.cu']),
+        CUDAExtension('FRNN.cuda', ['csrc/frnn_cuda.cpp', 'csrc/frnn.cu', 'csrc/grid.cu']),
     ],
     # cmdclass={"build_ext": BuildExtension},
     cmdclass={
