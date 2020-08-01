@@ -10,4 +10,5 @@ at::Tensor TestGridCUDA(
         const at::Tensor bbox_min,
         int K,
         float r);
-at::Tensor TensorTest(at::Tensor Points);
+at::Tensor PrefixSum(at::Tensor GridCnt);
+

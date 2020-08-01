@@ -6,6 +6,7 @@
 #include <tuple>
 
 #include "grid.h"
+#include "utils/prefix_sum.cuh"
 
 void SetupGridParamsCUDA(
     float* points_max,
@@ -152,8 +153,17 @@ at::Tensor TestGridCUDA(
     return GridCnt;
 }
 
-at::Tensor TensorTest(at::Tensor Points) {
-    auto int_dtype = Points.options().dtype(at::kInt);
-    at::Tensor Grid = at::full({1000}, -1, int_dtype);
-    return Grid;
+at::Tensor PrefixSum(at::Tensor GridCnt) {
+    int num_grids = GridCnt.size(0);
+    at::Tensor GridOff = at::zeros({num_grids}, GridCnt.options());
+    preallocBlockSumsInt(num_grids);
+    prescanArrayRecursiveInt(
+        GridOff.contiguous().data_ptr<int>(),
+        GridCnt.contiguous().data_ptr<int>(),
+        num_grids,
+        0
+    );
+    cudaDeviceSynchronize();
+    deallocBlockSumsInt();
+    return GridOff;
 }

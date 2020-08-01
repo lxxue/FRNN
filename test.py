@@ -74,6 +74,7 @@ class TestFRNN(unittest.TestCase):
         # print(dists[:5])
         # print(frnn_dists_cpu[0, :5])
     '''
+    '''
     def test_frnn_grid_gpu(self):
         K = 5
         r = 0.1
@@ -93,6 +94,19 @@ class TestFRNN(unittest.TestCase):
         print(gridCnt_gpu.shape)
         print(gridCnt_cpu.view(-1)[:20])
         print(gridCnt_gpu[:20])
+    '''
+
+    def test_prefix_sum(self):
+        GridCnt = torch.randint(low=0, high=1000, size=(100000,), device=torch.device('cuda:0'), dtype=torch.int)
+        cumsum = torch.cumsum(GridCnt, dim=0, dtype=torch.int)
+        gt = torch.zeros_like(cumsum)
+        gt[1:] = cumsum[:-1]
+        print(GridCnt.cpu()[:10])
+        print(gt.cpu()[:10])
+        GridOff = FRNN.cuda.prefix_sum(GridCnt)
+        print(GridOff[:10])
+        print(torch.allclose(GridOff, gt))
+
 
         
         
