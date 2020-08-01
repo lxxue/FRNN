@@ -7,6 +7,9 @@
 
 #include "grid.h"
 #include "utils/prefix_sum.cuh"
+#include "utils/mink.cuh"
+
+
 
 void SetupGridParamsCUDA(
     float* points_max,
@@ -166,4 +169,62 @@ at::Tensor PrefixSum(at::Tensor GridCnt) {
     cudaDeviceSynchronize();
     deallocBlockSumsInt();
     return GridOff;
+}
+
+// fix K to be 5 for now
+// template later
+__global__ void FindNbrsGridCUDA(
+    const float* __restrict__ Points, 
+    const int* __restrict__ GridCnt,
+    const int* __restrict__ GridCell,
+    float* __restrict__ dists,
+    float* __restrict__ idxs,
+    GridParams& params,
+    int num_points,
+    float r2) {
+
+    const int K = 5;
+
+    int i = __mul24(blockIdx.x, blockDim.x) _ threadId.x;
+    if (i >= num_points) return;
+
+    float3 dist;
+    float dsq;
+
+    register float px = Points[i*3], py = Points[i*3+1], pz = Points[i*3+2];
+    register float res_y = params.gridRes.y, res_z = params.gridRes.z;
+    int cx = GridCell_a[i][0], cy = GridCell_a[i][1], cz = GridCell_a[i][2];
+    int startx = std::max(0, cx-params.gridSrch), endx = std::min(cx+params.gridSrch, params.gridRes.x-1);
+    int starty = std::max(0, cy-params.gridSrch), endy = std::min(cy+params.gridSrch, params.gridRes.y-1);
+    int startz = std::max(0, cz-params.gridSrch), endz = std::min(cz+params.gridSrch, params.gridRes.z-1);
+
+    float min_dists[5];
+    int min_idxs[5];
+    MinK<float, int> mink(min_dists, min_idxs, K)
+    for (int x=startx; x<=endx; ++x) {
+        for (int y=starty; y<=endy; ++y) {
+            for (int z=startz; z<=endz; ++z) {
+                int cur = (x*res_y + y)*res_z + z;
+                int p_start = cur-1 >= 0 ? GridCnt[cur-1] : 0;
+                int p_end = GridCnt[cur];
+
+                for (int p=p_start; p < p_end; ++p) {
+                    if (p != i || true) {
+                        dist.x = Points[p*3] - px;
+                        dist.y = Points[p*3+1] - py;
+                        dist.z = Points[p*3+2] - pz;
+                        dsq = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
+                        if (dsq <= r2) {
+                            mink.add(dsq, p)
+                        }
+                    }
+                }
+                min.sort();
+                for (int k=0; k < mink.size(); ++k) {
+                    idxs[i*K+k] = min_idxs[k];
+                    idxs[i*K+k] = min_dists[k];
+                }
+            }
+        }
+    }
 }
