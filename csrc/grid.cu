@@ -39,7 +39,7 @@ void SetupGridParamsCUDA(
     std::cout << "grid delta done" << std::endl;
 
     params.gridTotal = params.gridRes.x * params.gridRes.y * params.gridRes.z;
-    params.gridSrch = 1;
+    params.gridSrch = 2;
 
     std::cout << "grid srch done" << std::endl;
 }
@@ -213,6 +213,7 @@ __global__ void FindNbrsGridKernel(
     register float px = Points[i*3], py = Points[i*3+1], pz = Points[i*3+2];
     register int res_x = params->gridRes.x, res_y = params->gridRes.y, res_z = params->gridRes.z;
     register int grid_srch = params->gridSrch;
+    register int grid_total = params->gridTotal;
     int grid_idx = GridCell[i];
     // gs = gc.x*params.gridRes.y + gc.y)*params.gridRes.z + gc.z
     int cz = grid_idx % res_z;
@@ -223,27 +224,35 @@ __global__ void FindNbrsGridKernel(
     int starty = std::max(0, cy-grid_srch), endy = std::min(cy+grid_srch, res_y-1);
     int startz = std::max(0, cz-grid_srch), endz = std::min(cz+grid_srch, res_z-1);
 
+    int original_i = SortedIdx[i];
+    if (original_i == 1) {
+        printf("%d %d %d %d %d %d %d\n", i, startx, endx, starty, endy, startz, endz);
+    }
+
     float min_dists[5];
     int min_idxs[5];
     MinK<float, int> mink(min_dists, min_idxs, K);
-    int original_i = SortedIdx[i];
     for (int x=startx; x<=endx; ++x) {
         for (int y=starty; y<=endy; ++y) {
             for (int z=startz; z<=endz; ++z) {
                 int cur = (x*res_y + y)*res_z + z;
-                int p_start = ((cur-1) >= 0 ? GridOff[cur-1] : 0);
-                int p_end = GridOff[cur];
+                // int p_start = ((cur-1) >= 0 ? GridOff[cur-1] : 0);
+                // int p_end = GridOff[cur];
+                int p_start = GridOff[cur];
+                int p_end = cur+1 == grid_total ? num_points : GridOff[cur+1];
+
+                // if (original_i == 1) {
+                //     printf("%d %d %d %d %d %d\n", x, y, z, cur, p_start, p_end);
+                // }
 
                 for (int p=p_start; p < p_end; ++p) {
-                    if (p != i || true) {
-                        dist.x = Points[p*3] - px;
-                        dist.y = Points[p*3+1] - py;
-                        dist.z = Points[p*3+2] - pz;
-                        dsq = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
-                        if (dsq <= r2) {
-                            // printf("%f %f %f %f %f %f %d %d %f\n", px, py, pz, Points[p*3], Points[p*3+1], Points[p*3+2], i, p, dsq);
-                            mink.add(dsq, SortedIdx[p]);
-                        }
+                    dist.x = Points[p*3] - px;
+                    dist.y = Points[p*3+1] - py;
+                    dist.z = Points[p*3+2] - pz;
+                    dsq = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
+                    if (dsq <= r2) {
+                        // printf("%f %f %f %f %f %f %d %d %f\n", px, py, pz, Points[p*3], Points[p*3+1], Points[p*3+2], i, p, dsq);
+                        mink.add(dsq, SortedIdx[p]);
                     }
                 }
                 mink.sort();
