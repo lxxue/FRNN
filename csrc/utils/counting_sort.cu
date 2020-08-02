@@ -1,3 +1,4 @@
+#include <ATen/ATen.h>
 
 // Counting Sort - Index
 __global__ void countingSortIndex (int* GridCell, int* GridIdx, int* GridOff, int* SortedPointIdxs, int num_points)
@@ -7,7 +8,7 @@ __global__ void countingSortIndex (int* GridCell, int* GridIdx, int* GridOff, in
 
 	int icell = GridCell[i];
 	int indx = GridIdx[i];
-	int sort_ndx = Gridoff[ icell ] + indx;				// global_ndx = grid_cell_offet + particle_offset
+	int sort_ndx = GridOff[ icell ] + indx;				// global_ndx = grid_cell_offet + particle_offset
     SortedPointIdxs[ sort_ndx ] = i;					// index sort, grid refers to original particle order
 }
 
@@ -45,23 +46,24 @@ void CountingSortIndexCUDA (at::Tensor GridCell,
                             at::Tensor SortedPointIdxs)
 {	
     int threadsPerBlock = 192;  // Not sure about this value
-    int numBlocks = (int)std::ceil((float)Points.size(0) / threadsPerBlock);
+    int numBlocks = (int)std::ceil((float)GridCell.size(0) / threadsPerBlock);
 	countingSortIndex <<< numBlocks, threadsPerBlock>>> (
         GridCell.contiguous().data_ptr<int>(),
         GridIdx.contiguous().data_ptr<int>(),
         GridOff.contiguous().data_ptr<int>(),
         SortedPointIdxs.contiguous().data_ptr<int>(),
-        GridCell.size(0);
+        GridCell.size(0)
     );		
-	cudaThreadSynchronize ();
+	cudaDeviceSynchronize ();
 }
 
-void CountingSortIndexCUDA (at::Tensor GridCell, 
-                            at::Tensor GridIdx, 
-                            at::Tensor GridOff, 
-                            at::Tensor Points,
-                            at::Tensor SortedGridCell,
-                            at::Tensor SortedPoints)
+void CountingSortFullCUDA (
+        at::Tensor GridCell, 
+        at::Tensor GridIdx, 
+        at::Tensor GridOff, 
+        at::Tensor Points,
+        at::Tensor SortedGridCell,
+        at::Tensor SortedPoints)
 {
     int threadsPerBlock = 192;  // Not sure about this value
     int numBlocks = (int)std::ceil((float)Points.size(0) / threadsPerBlock);
@@ -72,7 +74,8 @@ void CountingSortIndexCUDA (at::Tensor GridCell,
         Points.contiguous().data_ptr<float>(),
         SortedGridCell.contiguous().data_ptr<int>(),
         SortedPoints.contiguous().data_ptr<float>(),
-        GridCell.size(0);
+        GridCell.size(0)
     );		
-	cudaThreadSynchronize ();
+    cudaDeviceSynchronize ();
+    return;
 }

@@ -95,7 +95,7 @@ class TestFRNN(unittest.TestCase):
         print(gridCnt_cpu.view(-1)[:20])
         print(gridCnt_gpu[:20])
     '''
-
+    '''
     def test_prefix_sum(self):
         GridCnt = torch.randint(low=0, high=1000, size=(100000,), device=torch.device('cuda:0'), dtype=torch.int)
         cumsum = torch.cumsum(GridCnt, dim=0, dtype=torch.int)
@@ -106,6 +106,29 @@ class TestFRNN(unittest.TestCase):
         GridOff = FRNN.cuda.prefix_sum(GridCnt)
         print(GridOff[:10])
         print(torch.allclose(GridOff, gt))
+    '''
+    def test_counting_sort(self):
+        K = 5
+        r = 0.1
+        r2 = 0.01
+        max_num_points = 1000
+        num_pcs = 1
+        pc = torch.rand((num_pcs, max_num_points, 3), dtype=torch.float)
+        pc[0, 0, 0] = 0
+        pc[0, 0, 1] = 0
+        pc[0, 0, 2] = 0
+        pc[0, 1, 0] = 1
+        pc[0, 1, 1] = 1
+        pc[0, 1, 2] = 1
+        # lengths = torch.LongTensor([max_num_points])
+        # print("cpu done")
+        # gridCnt_cpu = FRNN.cpu.grid_test(pc[0], K, r)
+        bbox_max = torch.max(pc[0], 0)[0] 
+        bbox_min = torch.min(pc[0], 0)[0]
+        SortedPoints, SortedGridCell = FRNN.cuda.grid_test_gpu(pc[0].cuda(), bbox_max, bbox_min, K, r)
+        print(SortedPoints[:10])
+        print(SortedGridCell[:10])
+
 
 
         

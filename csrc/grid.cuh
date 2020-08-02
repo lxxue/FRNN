@@ -16,10 +16,7 @@ struct GridParams {
 };
 
 
-void SetupGridParams(
-    const at::Tensor Points,
-    float cell_size,
-    GridParams& params);
+at::Tensor PrefixSum(at::Tensor GridCnt);
 
 void SetupGridParamsCUDA(
     float* bbox_max,

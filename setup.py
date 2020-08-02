@@ -43,7 +43,7 @@ setup(
     # ext_modules=get_extensions(),
     ext_modules=[
         CUDAExtension('FRNN.cpu', ['csrc/frnn_cpu.cpp', 'csrc/grid_cpu.cpp']),
-        CUDAExtension('FRNN.cuda', ['csrc/frnn_cuda.cpp', 'csrc/frnn.cu', 'csrc/grid.cu', 'csrc/utils/prefix_sum.cu']),
+        CUDAExtension('FRNN.cuda', ['csrc/frnn_cuda.cpp', 'csrc/frnn.cu', 'csrc/grid.cu', 'csrc/utils/prefix_sum.cu', 'csrc/utils/counting_sort.cu']),
     ],
     # cmdclass={"build_ext": BuildExtension},
     cmdclass={

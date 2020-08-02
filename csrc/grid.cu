@@ -7,6 +7,7 @@
 
 #include "grid.h"
 #include "utils/prefix_sum.cuh"
+#include "utils/counting_sort.cuh"
 #include "utils/mink.cuh"
 
 
@@ -111,7 +112,7 @@ void InsertPointsCUDA(
 	cudaDeviceSynchronize();
 }
 
-at::Tensor TestGridCUDA(
+std::tuple<at::Tensor, at::Tensor> TestGridCUDA(
         const at::Tensor Points,
         const at::Tensor bbox_max,
         const at::Tensor bbox_min,
@@ -149,11 +150,25 @@ at::Tensor TestGridCUDA(
     // at::Tensor GridNext = at::full({num_points}, -1, int_dtype);
     // Point -> idx in its cell
     at::Tensor GridIdx = at::full({num_points}, -1, int_dtype);
+    
+    // new Points and GridCell after sorting
+    at::Tensor SortedGridCell = at::zeros({num_points}, GridCell.options());
+    at::Tensor SortedPoints = at::zeros({num_points, 3}, Points.options());
 
     InsertPointsCUDA(Points, Grid, GridCnt, GridCell, GridIdx, d_params);
     std::cout << "points inserted" << std::endl;
 
-    return GridCnt;
+    at::Tensor GridOff = PrefixSum(GridCnt);
+    CountingSortFullCUDA (
+        GridCell, 
+        GridIdx, 
+        GridOff, 
+        Points,
+        SortedGridCell,
+        SortedPoints 
+    );
+
+    return std::make_tuple(SortedPoints, SortedGridCell);
 }
 
 at::Tensor PrefixSum(at::Tensor GridCnt) {
@@ -173,7 +188,7 @@ at::Tensor PrefixSum(at::Tensor GridCnt) {
 
 // fix K to be 5 for now
 // template later
-__global__ void FindNbrsGridCUDA(
+__global__ void FindNbrsGridKernel(
     const float* __restrict__ Points, 
     const int* __restrict__ GridCnt,
     const int* __restrict__ GridCell,
@@ -185,22 +200,26 @@ __global__ void FindNbrsGridCUDA(
 
     const int K = 5;
 
-    int i = __mul24(blockIdx.x, blockDim.x) _ threadId.x;
+    int i = __mul24(blockIdx.x, blockDim.x) - threadIdx.x;
     if (i >= num_points) return;
 
     float3 dist;
     float dsq;
 
     register float px = Points[i*3], py = Points[i*3+1], pz = Points[i*3+2];
-    register float res_y = params.gridRes.y, res_z = params.gridRes.z;
-    int cx = GridCell_a[i][0], cy = GridCell_a[i][1], cz = GridCell_a[i][2];
+    register int res_y = params.gridRes.y, res_z = params.gridRes.z;
+    int grid_idx = GridCell[i];
+    // gs = gc.x*params.gridRes.y + gc.y)*params.gridRes.z + gc.z
+    int cz = grid_idx % res_z;
+    int cy = (grid_idx / res_z) % res_y;
+    int cx = (grid_idx / res_z) / res_y;
     int startx = std::max(0, cx-params.gridSrch), endx = std::min(cx+params.gridSrch, params.gridRes.x-1);
     int starty = std::max(0, cy-params.gridSrch), endy = std::min(cy+params.gridSrch, params.gridRes.y-1);
     int startz = std::max(0, cz-params.gridSrch), endz = std::min(cz+params.gridSrch, params.gridRes.z-1);
 
     float min_dists[5];
     int min_idxs[5];
-    MinK<float, int> mink(min_dists, min_idxs, K)
+    MinK<float, int> mink(min_dists, min_idxs, K);
     for (int x=startx; x<=endx; ++x) {
         for (int y=starty; y<=endy; ++y) {
             for (int z=startz; z<=endz; ++z) {
@@ -215,11 +234,11 @@ __global__ void FindNbrsGridCUDA(
                         dist.z = Points[p*3+2] - pz;
                         dsq = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
                         if (dsq <= r2) {
-                            mink.add(dsq, p)
+                            mink.add(dsq, p);
                         }
                     }
                 }
-                min.sort();
+                mink.sort();
                 for (int k=0; k < mink.size(); ++k) {
                     idxs[i*K+k] = min_idxs[k];
                     idxs[i*K+k] = min_dists[k];
