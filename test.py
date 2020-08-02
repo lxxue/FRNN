@@ -107,6 +107,7 @@ class TestFRNN(unittest.TestCase):
         print(GridOff[:10])
         print(torch.allclose(GridOff, gt))
     '''
+    '''
     def test_counting_sort(self):
         K = 5
         r = 0.1
@@ -128,8 +129,34 @@ class TestFRNN(unittest.TestCase):
         SortedPoints, SortedGridCell = FRNN.cuda.grid_test_gpu(pc[0].cuda(), bbox_max, bbox_min, K, r)
         print(SortedPoints[:10])
         print(SortedGridCell[:10])
+    '''
 
-
+    def test_frnn_grid_gpu(self):
+        K = 5
+        r2 = 0.01
+        r = 0.1
+        max_num_points = 1000
+        num_pcs = 1
+        pc = torch.rand((num_pcs, max_num_points, 3), dtype=torch.float)
+        bbox_max = torch.max(pc[0], 0)[0] 
+        bbox_min = torch.min(pc[0], 0)[0]
+        pc[0, 0, 0] = 0
+        pc[0, 0, 1] = 0
+        pc[0, 0, 2] = 0
+        pc[0, 1, 0] = 1
+        pc[0, 1, 1] = 1
+        pc[0, 1, 2] = 1
+        # lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.long)
+        lengths = torch.LongTensor([max_num_points])
+        frnn_idxs_cpu, frnn_dists_cpu = FRNN.cpu.frnn_bf_cpu(pc, pc, lengths, lengths, K, r2)
+        # idxs, dists = FRNN.cpu.grid_test(pc[0], K, r)
+        idxs_gpu, dists_gpu = FRNN.cuda.grid_test_gpu(pc[0].cuda(), bbox_max, bbox_min, K, r)
+        # print("same idxs: ", torch.allclose(frnn_idxs_cpu[0], idxs_gpu))
+        # print("same dists: ", torch.allclose(frnn_dists_cpu[0], dists_gpu))
+        print(idxs_gpu[:5])
+        print(frnn_idxs_cpu[0, :5])
+        print(dists_gpu[:5])
+        print(frnn_dists_cpu[0, :5])
 
         
         

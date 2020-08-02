@@ -91,7 +91,7 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsGrid(
     const at::Tensor Grid,
     const at::Tensor GridNext, 
     const at::Tensor GridCell,
-    GridParams& params,
+    const GridParams& params,
     int K,
     float r2) {
 
@@ -164,7 +164,7 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsGrid(
     return std::make_tuple(idxs, dists);
 }
 
-at::Tensor TestGrid(
+std::tuple<at::Tensor, at::Tensor> TestGrid(
     const at::Tensor Points, int K, float r) {
     std::cout << "enter TestGrid" << std::endl;
     float r2 = r * r;
@@ -202,6 +202,6 @@ at::Tensor TestGrid(
     // }
     
     
-    //return FindNbrsGrid(Points, Grid, GridNext, GridCell, params, K, r2);
-    return GridCnt;
+    return FindNbrsGrid(Points, Grid, GridNext, GridCell, params, K, r2);
+    // return GridCnt;
 }

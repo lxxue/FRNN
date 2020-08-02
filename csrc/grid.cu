@@ -127,8 +127,6 @@ std::tuple<at::Tensor, at::Tensor> TestGridCUDA(
         bbox_max.contiguous().data_ptr<float>(),
         bbox_min.contiguous().data_ptr<float>(),
         cell_size, params);
-    // copy params to gpu
-    // copy params to gpu
     GridParams* d_params;
     // std::cout << "d_params start" << std::endl;
     cudaMalloc((void**)&d_params, sizeof(GridParams));
@@ -165,10 +163,10 @@ std::tuple<at::Tensor, at::Tensor> TestGridCUDA(
         GridOff, 
         Points,
         SortedGridCell,
-        SortedPoints 
+        SortedPoints
     );
 
-    return std::make_tuple(SortedPoints, SortedGridCell);
+    return FindNbrsGridCUDA(SortedPoints, GridOff, SortedGridCell, d_params, K, r2);
 }
 
 at::Tensor PrefixSum(at::Tensor GridCnt) {
@@ -190,32 +188,34 @@ at::Tensor PrefixSum(at::Tensor GridCnt) {
 // template later
 __global__ void FindNbrsGridKernel(
     const float* __restrict__ Points, 
-    const int* __restrict__ GridCnt,
+    const int* __restrict__ GridOff,
     const int* __restrict__ GridCell,
     float* __restrict__ dists,
-    float* __restrict__ idxs,
-    GridParams& params,
+    long* __restrict__ idxs,
+    const GridParams* params,
     int num_points,
     float r2) {
 
     const int K = 5;
 
-    int i = __mul24(blockIdx.x, blockDim.x) - threadIdx.x;
+    int i = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
     if (i >= num_points) return;
 
     float3 dist;
     float dsq;
 
     register float px = Points[i*3], py = Points[i*3+1], pz = Points[i*3+2];
-    register int res_y = params.gridRes.y, res_z = params.gridRes.z;
+    register int res_x = params->gridRes.x, res_y = params->gridRes.y, res_z = params->gridRes.z;
+    register int grid_srch = params->gridSrch;
     int grid_idx = GridCell[i];
     // gs = gc.x*params.gridRes.y + gc.y)*params.gridRes.z + gc.z
     int cz = grid_idx % res_z;
     int cy = (grid_idx / res_z) % res_y;
     int cx = (grid_idx / res_z) / res_y;
-    int startx = std::max(0, cx-params.gridSrch), endx = std::min(cx+params.gridSrch, params.gridRes.x-1);
-    int starty = std::max(0, cy-params.gridSrch), endy = std::min(cy+params.gridSrch, params.gridRes.y-1);
-    int startz = std::max(0, cz-params.gridSrch), endz = std::min(cz+params.gridSrch, params.gridRes.z-1);
+    // printf("%f %f %f %d %d %d\n", px, py, pz, cx, cy, cz);
+    int startx = std::max(0, cx-grid_srch), endx = std::min(cx+grid_srch, res_x-1);
+    int starty = std::max(0, cy-grid_srch), endy = std::min(cy+grid_srch, res_y-1);
+    int startz = std::max(0, cz-grid_srch), endz = std::min(cz+grid_srch, res_z-1);
 
     float min_dists[5];
     int min_idxs[5];
@@ -224,8 +224,8 @@ __global__ void FindNbrsGridKernel(
         for (int y=starty; y<=endy; ++y) {
             for (int z=startz; z<=endz; ++z) {
                 int cur = (x*res_y + y)*res_z + z;
-                int p_start = cur-1 >= 0 ? GridCnt[cur-1] : 0;
-                int p_end = GridCnt[cur];
+                int p_start = ((cur-1) >= 0 ? GridOff[cur-1] : 0);
+                int p_end = GridOff[cur];
 
                 for (int p=p_start; p < p_end; ++p) {
                     if (p != i || true) {
@@ -234,6 +234,7 @@ __global__ void FindNbrsGridKernel(
                         dist.z = Points[p*3+2] - pz;
                         dsq = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
                         if (dsq <= r2) {
+                            printf("%f %f %f %f %f %f %d %d %f\n", px, py, pz, Points[p*3], Points[p*3+1], Points[p*3+2], i, p, dsq);
                             mink.add(dsq, p);
                         }
                     }
@@ -241,9 +242,51 @@ __global__ void FindNbrsGridKernel(
                 mink.sort();
                 for (int k=0; k < mink.size(); ++k) {
                     idxs[i*K+k] = min_idxs[k];
-                    idxs[i*K+k] = min_dists[k];
+                    dists[i*K+k] = min_dists[k];
                 }
             }
         }
     }
+}
+
+std::tuple<at::Tensor, at::Tensor> FindNbrsGridCUDA(
+    at::Tensor Points,
+    at::Tensor GridOff,
+    at::Tensor GridCell,
+    const GridParams* params,
+    int K,
+    float r2) 
+{
+    int threadsPerBlock = 192;  // Not sure about this value
+    int numBlocks = (int)std::ceil((float)Points.size(0) / threadsPerBlock);
+    int num_points = Points.size(0);
+
+    at::TensorArg Points_t{Points, "Points", 1};
+    at::TensorArg GridOff_t{GridOff, "GridOff", 2};
+    at::TensorArg GridCell_t{GridCell, "GridCell", 3};
+
+    at::CheckedFrom c = "FindNbrsGridCUDA";
+    at::checkAllSameGPU(c, {Points_t, GridOff_t, GridCell_t});
+    at::checkAllSameType(c, {GridOff_t, GridCell_t});
+
+    at::cuda::CUDAGuard device_guard(Points.device());
+    cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+
+
+
+    auto long_opts = Points.options().dtype(torch::kInt64);
+    torch::Tensor idxs = torch::full({num_points, K}, -1, long_opts);
+    torch::Tensor dists = torch::full({num_points, K}, -1, Points.options());
+    
+    FindNbrsGridKernel <<< numBlocks, threadsPerBlock, 0, stream >>> (
+        Points.contiguous().data_ptr<float>(),
+        GridOff.contiguous().data_ptr<int>(),
+        GridCell.contiguous().data_ptr<int>(),
+        dists.contiguous().data_ptr<float>(),
+        idxs.contiguous().data_ptr<long>(),
+        params,
+        num_points,
+        r2
+    );
+    return std::make_tuple(idxs, dists);
 }
