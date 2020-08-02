@@ -13,7 +13,15 @@ __global__ void countingSortIndex (int* GridCell, int* GridIdx, int* GridOff, in
 }
 
 // Counting Sort - Full (deep copy)
-__global__ void countingSortFull (int* GridCell, int* GridIdx, int* GridOff, float* Points, int* SortedGridCell, float* SortedPoints, int num_points)
+__global__ void countingSortFull (
+    int* GridCell, 
+    int* GridIdx, 
+    int* GridOff, 
+    float* Points, 
+    int* SortedGridCell, 
+    float* SortedPoints, 
+    int* SortedIdx,
+    int num_points)
 {
 	uint i = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;		// particle index				
 	if ( i >= num_points ) return;
@@ -36,6 +44,7 @@ __global__ void countingSortFull (int* GridCell, int* GridIdx, int* GridOff, flo
     SortedPoints[sort_ndx*3+2] = Points[i*3+2];
 
     SortedGridCell[sort_ndx] = icell;
+    SortedIdx[sort_ndx] = i;
     // no need for idx after sorting?
     // GridIdx[sort_ndx] = indx;
 }
@@ -63,7 +72,8 @@ void CountingSortFullCUDA (
         at::Tensor GridOff, 
         at::Tensor Points,
         at::Tensor SortedGridCell,
-        at::Tensor SortedPoints)
+        at::Tensor SortedPoints,
+        at::Tensor SortedIdx)
 {
     int threadsPerBlock = 192;  // Not sure about this value
     int numBlocks = (int)std::ceil((float)Points.size(0) / threadsPerBlock);
@@ -74,6 +84,7 @@ void CountingSortFullCUDA (
         Points.contiguous().data_ptr<float>(),
         SortedGridCell.contiguous().data_ptr<int>(),
         SortedPoints.contiguous().data_ptr<float>(),
+        SortedIdx.contiguous().data_ptr<int>(),
         GridCell.size(0)
     );		
     cudaDeviceSynchronize ();

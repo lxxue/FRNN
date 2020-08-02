@@ -4,4 +4,6 @@ void CountingSortFullCUDA (
         at::Tensor GridOff, 
         at::Tensor Points,
         at::Tensor SortedGridCell,
-        at::Tensor SortedPoints);
+        at::Tensor SortedPoints,
+        at::Tensor SortedIdx
+    );

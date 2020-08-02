@@ -25,6 +25,10 @@ void SetupGridParams(
         params.gridMin.z = std::min(params.gridMin.z, Points_a[i][2]);
         params.gridMax.z = std::max(params.gridMax.z, Points_a[i][2]);
     }
+
+    std::cout << params.gridMin.x << ' ' << params.gridMin.y << ' ' << params.gridMin.z << std::endl;
+    std::cout << params.gridMax.x << ' ' << params.gridMax.y << ' ' << params.gridMax.z << std::endl;
+
     std::cout << "grid min max done" << std::endl;
     params.gridSize = params.gridMax - params.gridMin;
     params.gridCellSize = cell_size;
@@ -200,6 +204,8 @@ std::tuple<at::Tensor, at::Tensor> TestGrid(
     //         }
     //     }
     // }
+
+    // return std::make_tuple(GridCnt, GridCell);
     
     
     return FindNbrsGrid(Points, Grid, GridNext, GridCell, params, K, r2);
