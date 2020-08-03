@@ -11,13 +11,11 @@ struct GridParams {
 };
 
 void SetupGridParamsCUDA (
-    float* points_min,
-    float* points_max,
+    float* bboxes,
     float cell_size,
     GridParams* params);
 
 
 void TestSetupGridParamsCUDA (
-    at::Tensor bbox_min,
-    at::Tensor bbox_max,
+    at::Tensor bboxes,
     float r);

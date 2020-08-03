@@ -1,6 +1,7 @@
 import torch
 import frnn
 import unittest
+from pytorch3d.structures import Pointclouds
 
 class Test(unittest.TestCase):
   K = 5
@@ -18,11 +19,14 @@ class Test(unittest.TestCase):
 
   def test_setup_grid_params_cuda(self):
     # in real usage should take lengths into account!
-    bbox_min = self.pc.min(dim=1)[0]
-    bbox_max = self.pc.max(dim=1)[0]
-    print(bbox_min)
-    print(bbox_max)
-    frnn.test_setup_grid_params_cuda(bbox_min, bbox_max, 0.1)
+    # bbox_min = self.pc.min(dim=1)[0]
+    # bbox_max = self.pc.max(dim=1)[0]
+    # print(bbox_min)
+    # print(bbox_max)
+    pc = Pointclouds(self.pc)
+    bboxes = pc.get_bounding_boxes() 
+    print(bboxes)
+    frnn.test_setup_grid_params_cuda(bboxes, 0.1)
 
 
 if __name__ == "__main__":

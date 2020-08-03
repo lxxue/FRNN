@@ -5,17 +5,16 @@
 #include "grid.h"
 
 void SetupGridParamsCUDA (
-    float* points_min,
-    float* points_max,
+    float* bboxes,
     float cell_size,
     GridParams* params) {
-  std::cout << points_min[0] << ' ' << points_max[0] << std::endl;
-  params->grid_min.x = points_min[0];
-  params->grid_min.y = points_min[1];
-  params->grid_min.z = points_min[2];
-  params->grid_max.x = points_max[0];
-  params->grid_max.y = points_max[1];
-  params->grid_max.z = points_max[2];
+  std::cout << bboxes[0] << ' ' << bboxes[3] << std::endl;
+  params->grid_min.x = bboxes[0];
+  params->grid_max.x = bboxes[1];
+  params->grid_min.y = bboxes[2];
+  params->grid_max.y = bboxes[3];
+  params->grid_min.z = bboxes[4];
+  params->grid_max.z = bboxes[5];
 
   params->grid_size = params->grid_max - params->grid_min;
   params->grid_res.x = (int)(params->grid_size.x / cell_size) + 1;
@@ -29,17 +28,17 @@ void SetupGridParamsCUDA (
 }
 
 void TestSetupGridParamsCUDA (
-    at::Tensor bbox_min,
-    at::Tensor bbox_max,
+    at::Tensor bboxes,  // N x 3 x 2 (min, max) at last dimension
     float r) {
-  int N = bbox_min.size(0);
+  int N = bboxes.size(0);
+  // TODO: cell_size determined joint by search radius and bbox_size
+  // TODO: cell_size different for different point clouds in the batch
   float cell_size = r;
   // std::cout << "cudaMalloc done" << std::endl;
   GridParams* h_params = new GridParams[N];
   for (int i = 0; i < N; ++i) {
     SetupGridParamsCUDA(
-      bbox_min.contiguous().data_ptr<float>() + i*3,
-      bbox_max.contiguous().data_ptr<float>() + i*3,
+      bboxes.contiguous().data_ptr<float>() + i*6,
       cell_size,
       &h_params[i]
     );
@@ -69,3 +68,17 @@ void TestSetupGridParamsCUDA (
   delete[] h_d_params;
   cudaFree(d_params);
 }
+
+template <typename idx_t>
+__global__ void InsertPointsKernel(
+    const float* __restrict__ points,
+    const idx_t* __restrict__ lengths,
+    idx_t* grid_cnt, // not sure if we can use __restrict__ here
+    idx_t* __restrict__ grid_cell,
+    idx_t* __restrict__ grid_idx,
+    size_t P,
+    const GridParams* params) {
+
+
+}
+
