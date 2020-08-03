@@ -13,6 +13,7 @@ def get_extensions():
     source_cuda = glob.glob(os.path.join(extensions_dir, "*", "*.cu"))
 
     extension  = CUDAExtension
+    sources = [main_source] + sources
     sources += source_cuda
     extra_compile_args = {"cxx": ["-std=c++14"]}
 
@@ -36,7 +37,8 @@ def get_extensions():
 
     extra_compile_args["nvcc"] = nvcc_args
 
-    include_dirs = [extensions_dir]
+    # include_dirs = [extensions_dir]
+    include_dirs = torch.utils.cpp_extension.include_paths() + [extensions_dir]
     ext_modules = [
         extension(
             "frnn",
@@ -46,23 +48,27 @@ def get_extensions():
             extra_compile_args=extra_compile_args
         )
     ]
+    print(sources)
     return ext_modules
 
-if os.getenv("PYTORCH3D_NO_NINJA", "0") == "1":
+# if os.getenv("PYTORCH3D_NO_NINJA", "0") == "1":
+#     class BuildExtension(torch.utils.cpp_extension.BuildExtension):
+#         def __init__(self, *args, **kwargs):
+#             super().__init__(use_ninja=False, *args, **kwargs)
+# 
+# else:
+#     BuildExtension = torch.utils.cpp_extension.BuildExtension
 
-    class BuildExtension(torch.utils.cpp_extension.BuildExtension):
-        def __init__(self, *args, **kwargs):
-            super().__init__(use_ninja=False, *args, **kwargs)
 
-else:
-    BuildExtension = torch.utils.cpp_extension.BuildExtension
-
+class BuildExtension(torch.utils.cpp_extension.BuildExtension):
+    def __init__(self, *args, **kwargs):
+        super().__init__(use_ninja=False, *args, **kwargs)
 
 setup(
     name="frnn",
     author="Lixin Xue, Yifan Wang",
     description="Fixed radius nearest neighbor search on gpu",
-    packages=find_packages(exclude=("tests")),
+    packages=find_packages(exclude=("deprecated", "tests")),
     ext_modules=get_extensions(),
     cmdclass={"build_ext": BuildExtension},
 )
