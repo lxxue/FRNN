@@ -2,6 +2,7 @@ import torch
 import FRNN.cpu
 import FRNN.cuda
 import unittest
+import time
 
 class TestFRNN(unittest.TestCase):
     '''
@@ -135,7 +136,7 @@ class TestFRNN(unittest.TestCase):
         K = 5
         r2 = 0.01
         r = 0.1
-        max_num_points = 1000
+        max_num_points = 2000000
         num_pcs = 1
         pc = torch.rand((num_pcs, max_num_points, 3), dtype=torch.float)
         # pc[0, 0, 0] = 0
@@ -148,21 +149,35 @@ class TestFRNN(unittest.TestCase):
         bbox_min = torch.min(pc[0], 0)[0]
         # lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.long)
         lengths = torch.LongTensor([max_num_points])
-        frnn_idxs_cpu, frnn_dists_cpu = FRNN.cpu.frnn_bf_cpu(pc, pc, lengths, lengths, K, r2)
-        idxs_cpu, dists_cpu = FRNN.cpu.grid_test(pc[0], K, r)
-        idxs_gpu, dists_gpu = FRNN.cuda.grid_test_gpu(pc[0].cuda(), bbox_max, bbox_min, K, r)
-        print("same idxs: ", float(torch.sum(frnn_idxs_cpu[0] == idxs_gpu.cpu())) / K / max_num_points)
-        print("same dists: ", float(torch.sum(torch.isclose(frnn_dists_cpu[0], dists_gpu.cpu()))) / K / max_num_points)
-        print("same idxs: ", float(torch.sum(idxs_cpu == idxs_gpu.cpu())) / K / max_num_points)
-        print("same dists: ", float(torch.sum(torch.isclose(dists_cpu, dists_gpu.cpu()))) / K / max_num_points)
+        # frnn_idxs_cpu, frnn_dists_cpu = FRNN.cpu.frnn_bf_cpu(pc, pc, lengths, lengths, K, r2)
+        start = time.time()
+        # idxs_cpu, dists_cpu = FRNN.cpu.grid_test(pc[0], K, r)
+        pc = pc.cuda()
+        lengths = lengths.cuda()
+        cpu_end = time.time()
+        print("bf start")
+        frnn_idxs_gpu, frnn_dists_gpu = FRNN.cuda.frnn_bf_gpu(pc, pc, lengths, lengths, K, r2)
+        print("bf end")
+        gpu_bf_end = time.time()
+        print("grid start")
+        idxs_gpu, dists_gpu = FRNN.cuda.grid_test_gpu(pc[0], bbox_max, bbox_min, K, r)
+        print("grid end")
+        gpu_end = time.time()
+        # print("same idxs: ", float(torch.sum(frnn_idxs_cpu[0] == idxs_gpu.cpu())) / K / max_num_points)
+        # print("same dists: ", float(torch.sum(torch.isclose(frnn_dists_cpu[0], dists_gpu.cpu()))) / K / max_num_points)
+        # print("same idxs: ", float(torch.sum(idxs_cpu == idxs_gpu.cpu())) / K / max_num_points)
+        # print("same dists: ", float(torch.sum(torch.isclose(dists_cpu, dists_gpu.cpu()))) / K / max_num_points)
         print("lose itself: ", torch.sum(idxs_gpu.cpu()[:, 0] != torch.arange(max_num_points)))
         print("lose itself: ", idxs_gpu.cpu()[:, 0])
         print(idxs_gpu[-5:])
-        print(idxs_cpu[-5:])
+        # print(idxs_cpu[-5:])
         # print("same gridcnt: ", float(torch.sum(idxs_gpu.cpu()==idxs_cpu.view(-1)))/idxs_gpu.shape[0])
         # print(frnn_idxs_cpu[0, :5])
         print(dists_gpu[-5:])
-        print(dists_cpu[-5:])
+        # print(dists_cpu[-5:])
+        print(cpu_end - start)
+        print(gpu_bf_end - cpu_end)
+        print(gpu_end - gpu_bf_end)
         # dists_cpu_linear = (dists_cpu[:, 0] * 11 + dists_cpu[:, 1])*11 + dists_cpu[:, 2]
         # print("same gridcell: ", float(torch.sum(dists_gpu.cpu()==dists_cpu_linear))/dists_gpu.shape[0])
         # convert gpu to cpu 

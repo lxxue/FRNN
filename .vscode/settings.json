@@ -53,5 +53,6 @@
         "thread": "cpp",
         "typeinfo": "cpp",
         "__nullptr": "cpp"
-    }
+    },
+    "python.pythonPath": "/local/home/lixxue/miniconda3/envs/dss2/bin/python"
 }
