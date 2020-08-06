@@ -2,6 +2,8 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
 
+#include <tuple>
+
 #include "grid.h"
 
 void SetupGridParamsCUDA (
@@ -76,9 +78,119 @@ __global__ void InsertPointsKernel(
     idx_t* grid_cnt, // not sure if we can use __restrict__ here
     idx_t* __restrict__ grid_cell,
     idx_t* __restrict__ grid_idx,
+    size_t N,
     size_t P,
     const GridParams* params) {
 
 
+  const idx_t chunks_per_cloud = (1 + (P - 1) / blockDim.x);
+  const idx_t chunks_to_do = N * chunks_per_cloud;
+  for (idx_t chunk=blockIdx.x; chunk < chunks_to_do; chunk += gridDim.x) {
+    const idx_t n = chunk / chunks_per_cloud;
+    const idx_t start_point = blockDim.x * (chunk % chunks_per_cloud);
+    idx_t p = start_point + threadIdx.x;
+    if (p >= lengths[n])
+      continue;
+
+    float3 grid_min = params[n].grid_min;
+    float grid_delta = params[n].grid_delta;
+    int3 grid_res = params[n].grid_res;
+    int grid_total = params[n].grid_total;
+
+    int3 gc;
+    gc.x = (int) ((points[(n*N+p)*3+0]-grid_min.x) * grid_delta);
+    gc.y = (int) ((points[(n*N+p)*3+1]-grid_min.y) * grid_delta);
+    gc.z = (int) ((points[(n*N+p)*3+2]-grid_min.z) * grid_delta);
+
+    idx_t gs = (gc.x*grid_res.y + gc.y) * grid_res.z + gc.z;
+    grid_cell[n * P + p] = gs;
+    // for long, need to convert it to unsigned long long since there is no atomicAdd for long
+    // grid_idx[n * P + p] = atomicAdd((unsigned long long*)&grid_cnt[n*grid_total + gs], (unsigned long long)1);
+    grid_idx[n * P + p] = atomicAdd(&grid_cnt[n*grid_total + gs], 1);
+  } 
 }
 
+template<typename idx_t>
+void InsertPointsCUDA(
+    const at::Tensor points,  // (N, P, 3)
+    const at::Tensor lengths,  // (N,)
+    at::Tensor grid_cnt,       // (N, grid_total)
+    at::Tensor grid_cell,      // (N, P)      
+    at::Tensor grid_idx,       // (N, P)
+    const GridParams* params) {// (N,)
+  at::TensorArg points_t{points, "points", 1};
+  at::TensorArg lengths_t{lengths, "lengths", 2};
+  at::TensorArg grid_cnt_t{grid_cnt, "grid_cnt", 3};
+  at::TensorArg grid_cell_t{grid_cell, "grid_cell", 4};
+  at::TensorArg grid_idx_t{grid_idx, "grid_idx", 5};
+
+  at::CheckedFrom c = "InsertPointsCUDA";
+  at::checkAllSameGPU(c, {points_t, lengths_t, grid_cnt_t, grid_cell_t, grid_idx_t});
+  at::checkAllSameType(c, {lengths_t, grid_cnt_t, grid_cell_t, grid_idx_t});
+
+  at::cuda::CUDAGuard device_guard(points.device());
+  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+
+  int threads = 256;
+  int blocks = 256;
+
+  InsertPointsKernel<idx_t><<<blocks, threads, 0, stream>>>(
+    points.contiguous().data_ptr<float>(),
+    lengths.contiguous().data_ptr<idx_t>(),
+    grid_cnt.contiguous().data_ptr<idx_t>(),
+    grid_cell.contiguous().data_ptr<idx_t>(),
+    grid_idx.contiguous().data_ptr<idx_t>(),
+    points.size(0),
+    points.size(1),
+    params
+  );
+  AT_CUDA_CHECK(cudaGetLastError());
+}
+
+std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA (
+    const at::Tensor bboxes,  
+    const at::Tensor points,  
+    const at::Tensor lengths,
+    float r) {
+  int N = bboxes.size(0);
+  int P = points.size(1);
+  float cell_size = r;
+  GridParams* h_params = new GridParams[N];
+  int max_grid_total = 0;
+  for (size_t i = 0; i < N; ++i) {
+    SetupGridParamsCUDA(
+      bboxes.contiguous().data_ptr<float>() + i*6,
+      cell_size,
+      &h_params[i]
+    );
+    max_grid_total = std::max(max_grid_total, h_params[i].grid_total);
+  }
+
+  GridParams* d_params;
+  cudaMalloc((void**)&d_params, N*sizeof(GridParams));
+  cudaMemcpy(d_params, h_params, N*sizeof(GridParams), cudaMemcpyHostToDevice);
+
+  auto long_dtype = lengths.options().dtype(at::kLong);
+  auto int_dtype = lengths.options().dtype(at::kInt);
+
+  auto dtype = long_dtype;
+  dtype = int_dtype;
+
+  auto grid_cnt = at::zeros({N, max_grid_total}, dtype);
+  auto grid_cell = at::full({N, P}, -1, dtype); 
+  auto grid_idx = at::full({N, P}, -1, dtype);
+
+  InsertPointsCUDA<int>(
+    points,
+    lengths,
+    grid_cnt,
+    grid_cell,
+    grid_idx,
+    d_params
+  );
+
+  return std::make_tuple(grid_cnt, grid_cell);
+
+  delete[] h_params;
+  cudaFree(d_params);
+}

@@ -19,3 +19,17 @@ void SetupGridParamsCUDA (
 void TestSetupGridParamsCUDA (
     at::Tensor bboxes,
     float r);
+
+void InsertPointsCUDA(
+  const at::Tensor points,  
+  const at::Tensor lengths, 
+  at::Tensor grid_cnt,      
+  at::Tensor grid_cell,     
+  at::Tensor grid_idx,      
+  const GridParams* params);
+
+std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA (
+   const at::Tensor bboxes,  
+   const at::Tensor points,  
+   const at::Tensor lengths,
+   float r);
