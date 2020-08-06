@@ -6,7 +6,7 @@
 
 #include "grid.h"
 
-void SetupGridParamsCUDA (
+void SetupGridParams(
     float* bboxes,
     float cell_size,
     GridParams* params) {
@@ -29,7 +29,7 @@ void SetupGridParamsCUDA (
   return;
 }
 
-void TestSetupGridParamsCUDA (
+void TestSetupGridParamsCUDA(
     at::Tensor bboxes,  // N x 3 x 2 (min, max) at last dimension
     float r) {
   int N = bboxes.size(0);
@@ -39,7 +39,7 @@ void TestSetupGridParamsCUDA (
   // std::cout << "cudaMalloc done" << std::endl;
   GridParams* h_params = new GridParams[N];
   for (int i = 0; i < N; ++i) {
-    SetupGridParamsCUDA(
+    SetupGridParams(
       bboxes.contiguous().data_ptr<float>() + i*6,
       cell_size,
       &h_params[i]
@@ -147,7 +147,7 @@ void InsertPointsCUDA(
   AT_CUDA_CHECK(cudaGetLastError());
 }
 
-std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA (
+std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA(
     const at::Tensor bboxes,  
     const at::Tensor points,  
     const at::Tensor lengths,
@@ -158,7 +158,7 @@ std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA (
   GridParams* h_params = new GridParams[N];
   int max_grid_total = 0;
   for (size_t i = 0; i < N; ++i) {
-    SetupGridParamsCUDA(
+    SetupGridParams(
       bboxes.contiguous().data_ptr<float>() + i*6,
       cell_size,
       &h_params[i]

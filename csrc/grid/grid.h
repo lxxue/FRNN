@@ -1,3 +1,4 @@
+#pragma once
 #include "utils/cutil_math.h"
 
 struct GridParams {
@@ -10,13 +11,13 @@ struct GridParams {
   GridParams() {}
 };
 
-void SetupGridParamsCUDA (
+void SetupGridParams(
     float* bboxes,
     float cell_size,
     GridParams* params);
 
 
-void TestSetupGridParamsCUDA (
+void TestSetupGridParamsCUDA(
     at::Tensor bboxes,
     float r);
 
@@ -28,8 +29,15 @@ void InsertPointsCUDA(
   at::Tensor grid_idx,      
   const GridParams* params);
 
-std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA (
+std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA(
    const at::Tensor bboxes,  
    const at::Tensor points,  
    const at::Tensor lengths,
    float r);
+
+
+std::tuple<at::Tensor, at::Tensor> TestInsertPointsCPU(
+    const at::Tensor bboxes,  
+    const at::Tensor points,  
+    const at::Tensor lengths,
+    float r);
