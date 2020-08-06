@@ -23,7 +23,7 @@ void InsertPointsCPU(
     at::Tensor grid_next, 
     GridParams* params) {
   auto points_a = points.accessor<float, 3>();
-  auto lengths_a = lengths.accessor<float, 1>();
+  auto lengths_a = lengths.accessor<int, 1>();
   auto grid_a = grid.accessor<int, 2>();
   auto grid_cnt_a = grid_cnt.accessor<int, 2>();
   auto grid_cell_a = grid_cell.accessor<int, 2>();

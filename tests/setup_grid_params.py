@@ -11,8 +11,9 @@ class Test(unittest.TestCase):
   max_num_points = 1000
 
   pc = torch.rand((num_pcs, max_num_points, 3), dtype=torch.float)
-  pc[:, :, 1] *= 0.5
-  pc[:, :, 2] *= 2
+  for i in range(num_pcs):
+    for j in range(3):
+      pc[i, :, j] *= torch.rand(1)+0.5
   pc_cuda = pc.cuda()
   lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.long)
   lengths_cuda = lengths.cuda()
@@ -25,7 +26,7 @@ class Test(unittest.TestCase):
     # print(bbox_max)
     pc = Pointclouds(self.pc)
     bboxes = pc.get_bounding_boxes() 
-    print(bboxes)
+    print(bboxes[0])
     frnn.test_setup_grid_params_cuda(bboxes, 0.1)
 
 
