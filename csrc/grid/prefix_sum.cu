@@ -266,18 +266,16 @@ void prescanArrayRecursiveInt (int *outArray, const int *inArray, int numElement
 }
 
 at::Tensor PrefixSumCUDA(
-    const at::Tensor lengths,
     const at::Tensor grid_cnt) {
-  int N = lengths.size(0);
-  int max_grid_total = grid_cnt.size(1);
-  at::Tensor grid_off = at::zeros({N, max_grid_total}, grid_cnt.options());
+  int N = grid_cnt.size(0);
+  int G = grid_cnt.size(1);
+  at::Tensor grid_off = at::zeros({N, G}, grid_cnt.options());
   for (int n = 0; n < N; ++n) {
-    int num_elements = *(lengths.contiguous().data_ptr<int>() + n);
-    preallocBlockSumsInt(num_elements);
+    preallocBlockSumsInt(G);
     prescanArrayRecursiveInt(
-      grid_off.contiguous().data_ptr<int>() + n*max_grid_total,
-      grid_cnt.contiguous().data_ptr<int>() + n*max_grid_total,
-      num_elements,
+      grid_off.contiguous().data_ptr<int>() + n*G,
+      grid_cnt.contiguous().data_ptr<int>() + n*G,
+      G,
       0
     );
     deallocBlockSumsInt();

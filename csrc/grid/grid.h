@@ -28,11 +28,11 @@ void InsertPointsCUDA(
   at::Tensor grid_cnt,      
   at::Tensor grid_cell,     
   at::Tensor grid_idx,      
-  int max_grid_total,
+  int G,
   const GridParams* params);
 
 
-std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
    const at::Tensor bboxes,  
    const at::Tensor points,  
    const at::Tensor lengths,

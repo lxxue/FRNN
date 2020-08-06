@@ -23,7 +23,7 @@ class Test(unittest.TestCase):
     pc = Pointclouds(self.pc)
     bboxes = pc.get_bounding_boxes() 
     grid_cnt_cpu, grid_cell_cpu = frnn.test_insert_points_cpu(bboxes, self.pc, self.lengths, self.r)
-    grid_cnt_cuda, grid_cell_cuda = frnn.test_insert_points_cuda(bboxes, self.pc_cuda, self.lengths_cuda, self.r)
+    grid_cnt_cuda, grid_cell_cuda, grid_idx_cuda = frnn.test_insert_points_cuda(bboxes, self.pc_cuda, self.lengths_cuda, self.r)
     # print(grid_cnt_cpu.shape)
     # print(grid_cnt_cuda.shape)
     # print(grid_cell_cpu.shape)

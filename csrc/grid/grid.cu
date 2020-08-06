@@ -79,7 +79,7 @@ __global__ void InsertPointsKernel(
     idx_t* __restrict__ grid_idx,
     size_t N,
     size_t P,
-    size_t grid_total,
+    size_t G,
     const GridParams* params) {
 
 
@@ -105,7 +105,7 @@ __global__ void InsertPointsKernel(
     grid_cell[n*P+p] = gs;
     // for long, need to convert it to unsigned long long since there is no atomicAdd for long
     // grid_idx[n * P + p] = atomicAdd((unsigned long long*)&grid_cnt[n*grid_total + gs], (unsigned long long)1);
-    grid_idx[n*P+p] = atomicAdd(&grid_cnt[n*grid_total + gs], 1);
+    grid_idx[n*P+p] = atomicAdd(&grid_cnt[n*G + gs], 1);
   } 
 }
 
@@ -113,10 +113,10 @@ template<typename idx_t>
 void InsertPointsCUDA(
     const at::Tensor points,    // (N, P, 3)
     const at::Tensor lengths,   // (N,)
-    at::Tensor grid_cnt,        // (N, grid_total)
+    at::Tensor grid_cnt,        // (N, G)
     at::Tensor grid_cell,       // (N, P)      
     at::Tensor grid_idx,        // (N, P)
-    int max_grid_total,
+    int G,
     const GridParams* params) { // (N,)
   at::TensorArg points_t{points, "points", 1};
   at::TensorArg lengths_t{lengths, "lengths", 2};
@@ -142,13 +142,13 @@ void InsertPointsCUDA(
     grid_idx.contiguous().data_ptr<idx_t>(),
     points.size(0),
     points.size(1),
-    max_grid_total,
+    G,
     params
   );
   AT_CUDA_CHECK(cudaGetLastError());
 }
 
-std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
     const at::Tensor bboxes,  
     const at::Tensor points,  
     const at::Tensor lengths,
@@ -193,5 +193,5 @@ std::tuple<at::Tensor, at::Tensor> TestInsertPointsCUDA(
 
   delete[] h_params;
   cudaFree(d_params);
-  return std::make_tuple(grid_cnt, grid_cell);
+  return std::make_tuple(grid_cnt, grid_cell, grid_idx);
 }
