@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <string>
 
-
-#define NUM_BANKS		16
-#define LOG_NUM_BANKS	 4
+// number of shared memory banks is 32 after compute capability 3.5
+#define NUM_BANKS		32
+#define LOG_NUM_BANKS	 5
 
 void preallocBlockSumsInt (unsigned int maxNumElements);
 void prescanArrayRecursiveInt (int *outArray, const int *inArray, int numElements, int level);
