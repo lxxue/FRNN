@@ -220,6 +220,7 @@ __global__ void FindNbrsKernel(
   int min_idxs[K];
   float3 diff;
   float sqdist;
+  float r2 = r*r;
   
   const int chunks_per_cloud = (1 + (P1 - 1) / blockDim.x);
   const int chunks_to_do = N * chunks_per_cloud;
@@ -236,7 +237,6 @@ __global__ void FindNbrsKernel(
     int3 res = params[n].grid_res;
     float3 grid_min = params[n].grid_min;
     float grid_delta = params[n].grid_delta;
-    float r2 = r*r;
 
     int3  min_gc, max_gc;
     // gc.x = (int) ((cur_point.x-grid_min.x) * grid_delta);
@@ -248,6 +248,7 @@ __global__ void FindNbrsKernel(
     max_gc.x = (int) std::floor((cur_point.x-grid_min.x+r) * grid_delta);
     max_gc.y = (int) std::floor((cur_point.y-grid_min.y+r) * grid_delta);
     max_gc.z = (int) std::floor((cur_point.z-grid_min.z+r) * grid_delta);
+    MinK<float, int> mink(min_dists, min_idxs, K);
     for (int x=std::max(min_gc.x, 0); x<=std::min(max_gc.x, res.x-1); ++x) {
       for (int y=std::max(min_gc.y, 0); y<=std::min(max_gc.y, res.y-1); ++y) {
         for (int z=std::max(min_gc.z, 0); z<=std::min(max_gc.z, res.z-1); ++z) {
@@ -260,7 +261,6 @@ __global__ void FindNbrsKernel(
           else {
             p2_end = grid_off[n*G+cell_idx+1]; 
           }
-          MinK<float, int> mink(min_dists, min_idxs, K);
           for (int p2=p2_start; p2<p2_end; ++p2) {
             diff.x = points2[n*P2*3 + p2*3] - cur_point.x;
             diff.y = points2[n*P2*3 + p2*3 + 1] - cur_point.y;
@@ -270,13 +270,14 @@ __global__ void FindNbrsKernel(
               mink.add(sqdist, sorted_point_idx[p2]);
             }
           }
-          mink.sort();
-          for (int k=0; k < mink.size(); ++k) {
-            idxs[n*P1*K + p1*K + k] = min_idxs[k];
-            dists[n*P1*K + p1*K + k] = min_dists[k];
-          }
+
         }
       }
+    }
+    mink.sort();
+    for (int k=0; k < mink.size(); ++k) {
+      idxs[n*P1*K + p1*K + k] = min_idxs[k];
+      dists[n*P1*K + p1*K + k] = min_dists[k];
     }
   }
 }
@@ -418,7 +419,7 @@ std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
     d_params
   );
 
-  auto grid_off = PrefixSumCUDA(grid_cnt, d_params);
+  auto grid_off = PrefixSumCUDA(grid_cnt, h_params);
 
   auto sorted_points2 = at::zeros({N, P2, 3}, points2.options());
   auto sorted_grid_cell = at::full({N, P2}, -1, dtype);
@@ -435,7 +436,7 @@ std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
     sorted_point_idx
   );
 
-  return std::make_tuple(grid_off, sorted_points2);
+  // return std::make_tuple(grid_off, sorted_points2);
 
   auto results = FindNbrsCUDA(
     points1,

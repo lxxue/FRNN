@@ -3,6 +3,7 @@
 #include <c10/cuda/CUDAGuard.h>
 
 #include <tuple>
+#include <queue>
 
 #include "grid.h"
 
@@ -88,4 +89,73 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCPU(
 
   delete[] h_params;
   return std::make_tuple(grid_cnt, grid_cell, grid_idx);
+}
+
+std::tuple<at::Tensor, at::Tensor> FindNbrsCPU(
+    const at::Tensor points1,             // (N, P1, 3)
+    const at::Tensor points2,             // (N, P2, 3)
+    const at::Tensor lengths1,            // (N,)
+    const at::Tensor lengths2,            // (N,)
+    const at::Tensor grid_off,            // (N, G)
+    const at::Tensor sorted_point_idx,    // (N, P2)
+    const GridParams* params,
+    int K,
+    float r) {
+  
+  const int N = points1.size(0);
+  // const int G = grid_off.size(1);
+  float r2 = r*r;
+  float3 diff;
+
+  auto points1_a = points1.accessor<float, 3>();
+  auto points2_a = points2.accessor<float, 3>();
+  auto lengths1_a = lengths1.accessor<int, 1>();
+  auto lengths2_a = lengths2.accessor<int, 1>();
+  auto grid_off_a = grid_off.accessor<int, 2>();
+  auto sorted_point_idx_a = sorted_point_idx.accessor<int, 2>();
+
+
+  for (int n=0; n < N; ++n) {
+    int3 res = params[n].grid_res;
+    float3 grid_min = params[n].grid_min;
+    float grid_delta = params[n].grid_delta;
+
+    for (int p1=0; p1 < lengths1_a[n]; ++p1) {
+      float3 cur_point;
+      cur_point.x = points1_a[n][p1][0];
+      cur_point.y = points1_a[n][p1][1];
+      cur_point.z = points1_a[n][p1][2];
+      int3 min_gc, max_gc;
+
+      min_gc.x = (int) std::floor((cur_point.x-grid_min.x-r)*grid_delta);
+      min_gc.y = (int) std::floor((cur_point.y-grid_min.y-r)*grid_delta);
+      min_gc.z = (int) std::floor((cur_point.z-grid_min.z-r)*grid_delta);
+      max_gc.x = (int) std::floor((cur_point.x-grid_min.x-r)*grid_delta);
+      max_gc.y = (int) std::floor((cur_point.y-grid_min.y-r)*grid_delta);
+      max_gc.z = (int) std::floor((cur_point.z-grid_min.z-r)*grid_delta);
+      for (int x=std::max(min_gc.x, 0); x<=std::min(max_gc.x, res.x-1); ++x) {
+        for (int y=std::max(min_gc.y, 0); y<=std::min(max_gc.y, res.y-1); ++y) {
+          for (int z=std::max(min_gc.z, 0); z<=std::min(max_gc.z, res.z-1); ++z) {
+            int cell_idx = (x*res.y + y)*res.z + z;
+            int p2_start = grid_off_a[n][cell_idx];
+            int p2_end;
+            if (cell_idx+1 == params[n].grid_total) {
+              p2_end = lengths2_a[n];
+            }
+            else {
+              p2_end = grid_off_a[n][cell_idx+1];
+            }
+            for (int p2=p2_start; p2<p2_end; ++p2) {
+              diff.x = points2_a[n][p2][0] - cur_point.x;
+              diff.y = points2_a[n][p2][1] - cur_point.y;
+              diff.z = points2_a[n][p2][2] - cur_point.z;
+              float sqdist = diff.x*diff.x + diff.y*diff.y + diff.z*diff.z;
+              if (sqdist <= r2) {
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
