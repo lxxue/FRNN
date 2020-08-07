@@ -272,8 +272,8 @@ at::Tensor PrefixSumCUDA(
   int N = grid_cnt.size(0);
   int G = grid_cnt.size(1);
   // std::cout << "G: " << G << std::endl;
-  // at::Tensor grid_off = at::full({N, G}, -1, grid_cnt.options());
-  at::Tensor grid_off = at::zeros({N, G}, grid_cnt.options());
+  at::Tensor grid_off = at::full({N, G}, -1, grid_cnt.options());
+  //at::Tensor grid_off = at::zeros({N, G}, grid_cnt.options());
   for (int n = 0; n < N; ++n) {
     // std::cout << "prefixsum iter " << n << std::endl;
     int num_grids = params[n].grid_total;
@@ -338,17 +338,15 @@ at::Tensor TestPrefixSumCUDA(
     grid_cell,
     grid_idx,
     max_grid_total,
-    h_params
-  );
-  std::cout << "Insert points done" << std::endl;
-
-  PrefixSumCUDA(
-    grid_cnt,
     d_params
   );
-  std::cout << "Prefix sum done" << std::endl;
+
+  auto grid_off = PrefixSumCUDA(
+    grid_cnt,
+    h_params
+  );
 
   delete[] h_params;
   cudaFree(d_params);
-  return grid_cnt;
+  return grid_off;
 }
