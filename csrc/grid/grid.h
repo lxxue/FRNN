@@ -44,3 +44,14 @@ std::tuple<at::Tensor, at::Tensor> TestInsertPointsCPU(
     const at::Tensor points,  
     const at::Tensor lengths,
     float r);
+
+std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
+    const at::Tensor points1,
+    const at::Tensor points2,
+    const at::Tensor lengths1,
+    const at::Tensor lengths2,
+    const at::Tensor grid_off,
+    const at::Tensor sorted_point_idx,
+    const GridParams* params,
+    int K,
+    float r);

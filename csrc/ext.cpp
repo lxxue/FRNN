@@ -13,4 +13,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("prefix_sum_cpu", &PrefixSumCPU);
   m.def("counting_sort_cuda", &CountingSortCUDA);
   m.def("counting_sort_cpu", &CountingSortCPU);
+  m.def("find_nbrs_cuda", &FindNbrsCUDA);
 }
