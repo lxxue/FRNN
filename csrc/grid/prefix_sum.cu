@@ -13,6 +13,7 @@
 
 #include <string>
 #include <ATen/ATen.h>
+#include "prefix_sum.h"
 
 template <bool isNP2> __device__ void loadSharedChunkFromMemInt (int *s_data, const int *g_idata, int n, int baseIndex, int& ai, int& bi, int& mem_ai, int& mem_bi, int& bankOffsetA, int& bankOffsetB )
 {
@@ -265,21 +266,89 @@ void prescanArrayRecursiveInt (int *outArray, const int *inArray, int numElement
     }
 }
 
-// TODO: add params here
 at::Tensor PrefixSumCUDA(
-    const at::Tensor grid_cnt) {
+    const at::Tensor grid_cnt,
+    const GridParams* params) {
   int N = grid_cnt.size(0);
   int G = grid_cnt.size(1);
+  // std::cout << "G: " << G << std::endl;
+  // at::Tensor grid_off = at::full({N, G}, -1, grid_cnt.options());
   at::Tensor grid_off = at::zeros({N, G}, grid_cnt.options());
   for (int n = 0; n < N; ++n) {
-    preallocBlockSumsInt(G);
+    // std::cout << "prefixsum iter " << n << std::endl;
+    int num_grids = params[n].grid_total;
+    // int num_grids = G;
+    // std::cout << params[n].grid_min.x << ' ' << params[n].grid_min.y << ' ' << params[n].grid_min.z << std::endl;
+    // std::cout << params[n].grid_max.x << ' ' << params[n].grid_max.y << ' ' << params[n].grid_max.z << std::endl;
+    // std::cout << params[n].grid_size.x << ' ' << params[n].grid_size.y << ' ' << params[n].grid_size.z << std::endl;
+    // std::cout << params[n].grid_res.x << ' ' << params[n].grid_res.y << ' ' << params[n].grid_res.z << std::endl;
+    // std::cout << params[n].grid_total << ' ' << params[n].grid_delta << ' ' << std::endl; 
+
+    preallocBlockSumsInt(num_grids);
     prescanArrayRecursiveInt(
       grid_off.contiguous().data_ptr<int>() + n*G,
       grid_cnt.contiguous().data_ptr<int>() + n*G,
-      G,
+      num_grids,
       0
     );
     deallocBlockSumsInt();
   }
   return grid_off;
+}
+
+at::Tensor TestPrefixSumCUDA(
+    const at::Tensor bboxes,  
+    const at::Tensor points,  
+    const at::Tensor lengths,
+    float r) {
+  int N = bboxes.size(0);
+  int P = points.size(1);
+  float cell_size = r;
+  GridParams* h_params = new GridParams[N];
+  int max_grid_total = 0;
+  for (size_t i = 0; i < N; ++i) {
+    SetupGridParams(
+      bboxes.contiguous().data_ptr<float>() + i*6,
+      cell_size,
+      &h_params[i]
+    );
+    max_grid_total = std::max(max_grid_total, h_params[i].grid_total);
+  }
+
+  GridParams* d_params;
+  cudaMalloc((void**)&d_params, N*sizeof(GridParams));
+  cudaMemcpy(d_params, h_params, N*sizeof(GridParams), cudaMemcpyHostToDevice);
+
+  std::cout << "Setup grid params done" << std::endl;
+
+  auto long_dtype = lengths.options().dtype(at::kLong);
+  auto int_dtype = lengths.options().dtype(at::kInt);
+
+  auto dtype = long_dtype;
+  dtype = int_dtype;
+
+  auto grid_cnt = at::zeros({N, max_grid_total}, dtype);
+  auto grid_cell = at::full({N, P}, -1, dtype); 
+  auto grid_idx = at::full({N, P}, -1, dtype);
+
+  InsertPointsCUDA<int>(
+    points,
+    lengths,
+    grid_cnt,
+    grid_cell,
+    grid_idx,
+    max_grid_total,
+    h_params
+  );
+  std::cout << "Insert points done" << std::endl;
+
+  PrefixSumCUDA(
+    grid_cnt,
+    d_params
+  );
+  std::cout << "Prefix sum done" << std::endl;
+
+  delete[] h_params;
+  cudaFree(d_params);
+  return grid_cnt;
 }

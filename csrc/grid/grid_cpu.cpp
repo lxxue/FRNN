@@ -21,6 +21,7 @@ void InsertPointsCPU(
     at::Tensor grid_cnt, 
     at::Tensor grid_cell, 
     at::Tensor grid_next, 
+    at::Tensor grid_idx,
     GridParams* params) {
   auto points_a = points.accessor<float, 3>();
   auto lengths_a = lengths.accessor<int, 1>();
@@ -28,6 +29,7 @@ void InsertPointsCPU(
   auto grid_cnt_a = grid_cnt.accessor<int, 2>();
   auto grid_cell_a = grid_cell.accessor<int, 2>();
   auto grid_next_a = grid_next.accessor<int, 2>();
+  auto grid_idx_a = grid_idx.accessor<int, 2>();
 
   int gs;
   int3 gc;
@@ -37,6 +39,7 @@ void InsertPointsCPU(
       gs = GetGridCell(points_a[n][p][0], points_a[n][p][1], points_a[n][p][2], gc, params[n]);
       grid_cell_a[n][p] = gs;
       grid_next_a[n][p] = grid_a[n][gs];
+      grid_idx_a[n][p] = grid_cnt_a[n][gs];
       grid_a[n][gs] = p;
       grid_cnt_a[n][gs]++;
     }
@@ -44,7 +47,7 @@ void InsertPointsCPU(
 }
 
 
-std::tuple<at::Tensor, at::Tensor> TestInsertPointsCPU(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCPU(
     const at::Tensor bboxes,  
     const at::Tensor points,  
     const at::Tensor lengths,
@@ -70,6 +73,7 @@ std::tuple<at::Tensor, at::Tensor> TestInsertPointsCPU(
   auto grid_cell = at::full({N, P}, -1, dtype); 
   auto grid_cnt = at::zeros({N, max_grid_total}, dtype);
   auto grid_next = at::full({N, P}, -1, dtype); 
+  auto grid_idx = at::full({N, P}, -1, dtype); 
 
   InsertPointsCPU(
     points,
@@ -78,10 +82,10 @@ std::tuple<at::Tensor, at::Tensor> TestInsertPointsCPU(
     grid_cnt,
     grid_cell,
     grid_next,
+    grid_idx,
     h_params
   );
 
-  return std::make_tuple(grid_cnt, grid_cell);
-
   delete[] h_params;
+  return std::make_tuple(grid_cnt, grid_cell, grid_idx);
 }

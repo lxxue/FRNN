@@ -5,6 +5,8 @@
 #include <tuple>
 
 #include "grid.h"
+#include "prefix_sum.h"
+#include "counting_sort.h"
 #include "utils/mink.cuh"
 #include "utils/dispatch.cuh"
 
@@ -240,15 +242,15 @@ __global__ void FindNbrsKernel(
     // gc.x = (int) ((cur_point.x-grid_min.x) * grid_delta);
     // gc.y = (int) ((cur_point.y-grid_min.y) * grid_delta);
     // gc.z = (int) ((cur_point.z-grid_min.z) * grid_delta);
-    min_gc.x = (int) ((cur_point.x-grid_min.x-r) * grid_delta);
-    min_gc.y = (int) ((cur_point.y-grid_min.y-r) * grid_delta);
-    min_gc.z = (int) ((cur_point.z-grid_min.z-r) * grid_delta);
-    max_gc.x = (int) ((cur_point.x-grid_min.x+r) * grid_delta);
-    max_gc.y = (int) ((cur_point.y-grid_min.y+r) * grid_delta);
-    max_gc.z = (int) ((cur_point.z-grid_min.z+r) * grid_delta);
-    for (int x=std::max(min_gc.x, 0); x<std::min(max_gc.x, res.x-1); ++x) {
-      for (int y=std::max(min_gc.y, 0); y<std::min(max_gc.y, res.y-1); ++y) {
-        for (int z=std::max(min_gc.z, 0); z<std::min(max_gc.z, res.z-1); ++z) {
+    min_gc.x = (int) std::floor((cur_point.x-grid_min.x-r) * grid_delta);
+    min_gc.y = (int) std::floor((cur_point.y-grid_min.y-r) * grid_delta);
+    min_gc.z = (int) std::floor((cur_point.z-grid_min.z-r) * grid_delta);
+    max_gc.x = (int) std::floor((cur_point.x-grid_min.x+r) * grid_delta);
+    max_gc.y = (int) std::floor((cur_point.y-grid_min.y+r) * grid_delta);
+    max_gc.z = (int) std::floor((cur_point.z-grid_min.z+r) * grid_delta);
+    for (int x=std::max(min_gc.x, 0); x<=std::min(max_gc.x, res.x-1); ++x) {
+      for (int y=std::max(min_gc.y, 0); y<=std::min(max_gc.y, res.y-1); ++y) {
+        for (int z=std::max(min_gc.z, 0); z<=std::min(max_gc.z, res.z-1); ++z) {
           int cell_idx = (x*res.y + y)*res.z + z;
           int p2_start = grid_off[n*G + cell_idx];
           int p2_end;
@@ -341,7 +343,7 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   
   auto int_dtype = lengths1.options().dtype(at::kInt);
   auto idxs = at::full({N, P1, K}, -1, int_dtype);
-  auto dists = at::zeros({N, P1, K}, points1.options());
+  auto dists = at::full({N, P1, K}, -1, points1.options());
 
   const size_t threads = 256;
   const size_t blocks = 256;
@@ -350,7 +352,8 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   //  K,
   //  blocks,
   //  threads,
-  
+
+  // TODO: correctly use DispatchKernel1D here
   FindNbrsKernel<5><<<blocks, threads, 0, stream>>>(
     points1.contiguous().data_ptr<float>(),
     points2.contiguous().data_ptr<float>(),
@@ -369,4 +372,84 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   );
 
   return std::make_tuple(idxs, dists);
+}
+
+std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
+    const at::Tensor bboxes,  
+    const at::Tensor points1,  
+    const at::Tensor points2,
+    const at::Tensor lengths1,
+    const at::Tensor lengths2,
+    int K,
+    float r) {
+  int N = points1.size(0);
+  int P1 = points1.size(1);
+  int P2 = points2.size(1);
+  float cell_size = r;
+  GridParams* h_params = new GridParams[N];
+  int max_grid_total = 0;
+  for (size_t i = 0; i < N; ++i) {
+    SetupGridParams(
+      bboxes.contiguous().data_ptr<float>() + i*6,
+      cell_size,
+      &h_params[i]
+    );
+    max_grid_total = std::max(max_grid_total, h_params[i].grid_total);
+  }
+
+  GridParams* d_params;
+  cudaMalloc((void**)&d_params, N*sizeof(GridParams));
+  cudaMemcpy(d_params, h_params, N*sizeof(GridParams), cudaMemcpyHostToDevice);
+
+  auto int_dtype = lengths2.options().dtype(at::kInt);
+  auto dtype = int_dtype;
+
+  auto grid_cnt = at::zeros({N, max_grid_total}, dtype);
+  auto grid_cell = at::full({N, P2}, -1, dtype); 
+  auto grid_idx = at::full({N, P2}, -1, dtype);
+
+  InsertPointsCUDA<int>(
+    points2,
+    lengths2,
+    grid_cnt,
+    grid_cell,
+    grid_idx,
+    max_grid_total,
+    d_params
+  );
+
+  auto grid_off = PrefixSumCUDA(grid_cnt, d_params);
+
+  auto sorted_points2 = at::zeros({N, P2, 3}, points2.options());
+  auto sorted_grid_cell = at::full({N, P2}, -1, dtype);
+  auto sorted_point_idx = at::full({N, P2}, -1, dtype);
+
+  CountingSortCUDA(
+    points2,
+    lengths2,
+    grid_cell,
+    grid_idx,
+    grid_off,
+    sorted_points2,
+    sorted_grid_cell,
+    sorted_point_idx
+  );
+
+  return std::make_tuple(grid_off, sorted_points2);
+
+  auto results = FindNbrsCUDA(
+    points1,
+    sorted_points2,
+    lengths1,
+    lengths2,
+    grid_off,
+    sorted_point_idx,
+    d_params,
+    K,
+    r
+  );
+
+  delete[] h_params;
+  cudaFree(d_params);
+  return results;
 }
