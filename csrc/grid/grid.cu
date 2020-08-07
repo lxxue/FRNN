@@ -267,7 +267,7 @@ __global__ void FindNbrsKernel(
             diff.z = points2[n*P2*3 + p2*3 + 2] - cur_point.z;
             sqdist = diff.x*diff.x + diff.y*diff.y + diff.z*diff.z;
             if (sqdist <= r2) {
-              mink.add(sqdist, sorted_point_idx[p2]);
+              mink.add(sqdist, sorted_point_idx[n*P2+p2]);
             }
           }
 
