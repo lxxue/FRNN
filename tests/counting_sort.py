@@ -13,8 +13,8 @@ class Test(unittest.TestCase):
   pc = torch.rand((num_pcs, max_num_points, 3), dtype=torch.float)
   for i in range(num_pcs):
     for j in range(3):
-      # pc[i, :, j] *= torch.rand(1)+0.5
-      pc[i, :, j] *= 1
+      pc[i, :, j] *= torch.rand(1)+0.5
+      # pc[i, :, j] *= 1
   pc_cuda = pc.cuda()
   lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.int)
   lengths_cuda = lengths.cuda()
@@ -22,13 +22,26 @@ class Test(unittest.TestCase):
   def test_counting_sort_cuda(self):
     pc = Pointclouds(self.pc)
     bboxes = pc.get_bounding_boxes() 
-    grid_cnt_cpu, grid_cell_cpu = frnn.test_insert_points_cpu(bboxes, self.pc, self.lengths, self.r)
+    grid_cnt_cpu, grid_cell_cpu, grid_idx_cpu = frnn.test_insert_points_cpu(bboxes, self.pc, self.lengths, self.r)
     grid_cnt_cuda, grid_cell_cuda, grid_idx_cuda = frnn.test_insert_points_cuda(bboxes, self.pc_cuda, self.lengths_cuda, self.r)
     grid_idx_cpu = grid_idx_cuda.cpu()
     print(torch.allclose(grid_cell_cpu, grid_cell_cuda.cpu()))
     print(torch.allclose(grid_cnt_cpu, grid_cnt_cuda.cpu()))
-    grid_off_cpu = frnn.prefix_sum_cpu(grid_cnt_cpu)
-    grid_off_cuda = frnn.prefix_sum_cuda(grid_cnt_cuda)
+    # grid_off_cpu = frnn.prefix_sum_cpu(grid_cnt_cpu)
+    # grid_off_cuda = frnn.prefix_sum_cuda(grid_cnt_cuda)
+    grid_off_cpu = frnn.test_prefix_sum_cpu(
+      bboxes,
+      self.pc,
+      self.lengths,
+      self.r
+    )
+    grid_off_cuda = frnn.test_prefix_sum_cuda(
+      bboxes,
+      self.pc_cuda,
+      self.lengths_cuda,
+      self.r
+    )
+
     print(torch.allclose(grid_off_cpu, grid_off_cuda.cpu()))
 
     sorted_points_cpu = torch.zeros_like(self.pc)
