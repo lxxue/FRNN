@@ -25,7 +25,7 @@ void InsertPointsCPU(
     at::Tensor grid_idx,
     GridParams* params) {
   auto points_a = points.accessor<float, 3>();
-  auto lengths_a = lengths.accessor<int, 1>();
+  auto lengths_a = lengths.accessor<long, 1>();
   auto grid_a = grid.accessor<int, 2>();
   auto grid_cnt_a = grid_cnt.accessor<int, 2>();
   auto grid_cell_a = grid_cell.accessor<int, 2>();
@@ -91,6 +91,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCPU(
   return std::make_tuple(grid_cnt, grid_cell, grid_idx);
 }
 
+// TODO: finish FindNbrsCPU
 std::tuple<at::Tensor, at::Tensor> FindNbrsCPU(
     const at::Tensor points1,             // (N, P1, 3)
     const at::Tensor points2,             // (N, P2, 3)
@@ -109,8 +110,8 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCPU(
 
   auto points1_a = points1.accessor<float, 3>();
   auto points2_a = points2.accessor<float, 3>();
-  auto lengths1_a = lengths1.accessor<int, 1>();
-  auto lengths2_a = lengths2.accessor<int, 1>();
+  auto lengths1_a = lengths1.accessor<long, 1>();
+  auto lengths2_a = lengths2.accessor<long, 1>();
   auto grid_off_a = grid_off.accessor<int, 2>();
   auto sorted_point_idx_a = sorted_point_idx.accessor<int, 2>();
 

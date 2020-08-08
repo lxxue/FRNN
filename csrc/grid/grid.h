@@ -21,7 +21,6 @@ void TestSetupGridParamsCUDA(
     at::Tensor bboxes,
     float r);
 
-template<typename idx_t>
 void InsertPointsCUDA(
     const at::Tensor points,  
     const at::Tensor lengths, 

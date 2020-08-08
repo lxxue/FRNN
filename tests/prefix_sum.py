@@ -16,7 +16,7 @@ class Test(unittest.TestCase):
       pc[i, :, j] *= torch.rand(1)+0.5
       # pc[i, :, j] *= 1
   pc_cuda = pc.cuda()
-  lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.int)
+  lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.long)
   lengths_cuda = lengths.cuda()
 
   def test_insert_points_cuda(self):

@@ -13,10 +13,10 @@ class Test(unittest.TestCase):
   pc = torch.rand((num_pcs, max_num_points, 3), dtype=torch.float)
   for i in range(num_pcs):
     for j in range(3):
-      # pc[i, :, j] *= torch.rand(1)+0.5
-      pc[i, :, j] *= 1
+      pc[i, :, j] *= torch.rand(1)+0.5
+      # pc[i, :, j] *= 1
   pc_cuda = pc.cuda()
-  lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.int)
+  lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.long)
   lengths_cuda = lengths.cuda()
 
   def test_counting_sort_cuda(self):
@@ -49,8 +49,8 @@ class Test(unittest.TestCase):
     print(dists_gt[1, :10])
     # print(torch.allclose(idxs_cuda[0], idxs_gt[0].type(torch.int)))
     # print(torch.allclose(dists_cuda[0], dists_gt[0]))
-    print("idx same: ", torch.allclose(idxs_cuda, idxs_gt.type(torch.int)))
-    print("idx same percentage: ", torch.sum(idxs_cuda == idxs_gt.type(torch.int)).type(torch.float).item() / self.K / self.max_num_points / self.num_pcs)
+    print("idx same: ", torch.allclose(idxs_cuda, idxs_gt))
+    print("idx same percentage: ", torch.sum(idxs_cuda == idxs_gt).type(torch.float).item() / self.K / self.max_num_points / self.num_pcs)
     print("dist same: ", torch.allclose(dists_cuda, dists_gt))
     # grid_cnt_cpu, grid_cell_cpu, grid_idx_cpu = frnn.test_insert_points_cpu(bboxes, self.pc, self.lengths, self.r)
     # grid_cnt_cuda, grid_cell_cuda, grid_idx_cuda = frnn.test_insert_points_cuda(bboxes, self.pc_cuda, self.lengths_cuda, self.r)

@@ -321,17 +321,14 @@ at::Tensor TestPrefixSumCUDA(
 
   std::cout << "Setup grid params done" << std::endl;
 
-  auto long_dtype = lengths.options().dtype(at::kLong);
   auto int_dtype = lengths.options().dtype(at::kInt);
 
-  auto dtype = long_dtype;
-  dtype = int_dtype;
+  auto grid_cnt = at::zeros({N, max_grid_total}, int_dtype);
+  auto grid_cell = at::full({N, P}, -1, int_dtype); 
+  auto grid_idx = at::full({N, P}, -1, int_dtype);
 
-  auto grid_cnt = at::zeros({N, max_grid_total}, dtype);
-  auto grid_cell = at::full({N, P}, -1, dtype); 
-  auto grid_idx = at::full({N, P}, -1, dtype);
-
-  InsertPointsCUDA<int>(
+  // we use params inside the kernel function, so pass d_params
+  InsertPointsCUDA(
     points,
     lengths,
     grid_cnt,
@@ -341,6 +338,7 @@ at::Tensor TestPrefixSumCUDA(
     d_params
   );
 
+  // we only use params.grid_total on cpu, so pass h_params
   auto grid_off = PrefixSumCUDA(
     grid_cnt,
     h_params

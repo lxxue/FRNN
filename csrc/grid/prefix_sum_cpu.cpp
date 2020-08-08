@@ -42,13 +42,12 @@ at::Tensor TestPrefixSumCPU(
   }
 
   auto int_dtype = lengths.options().dtype(at::kInt);
-  auto dtype = int_dtype;
 
-  auto grid = at::full({N, max_grid_total}, -1, dtype);
-  auto grid_cell = at::full({N, P}, -1, dtype); 
-  auto grid_cnt = at::zeros({N, max_grid_total}, dtype);
-  auto grid_next = at::full({N, P}, -1, dtype); 
-  auto grid_idx = at::full({N, P}, -1, dtype); 
+  auto grid = at::full({N, max_grid_total}, -1, int_dtype);
+  auto grid_cell = at::full({N, P}, -1, int_dtype); 
+  auto grid_cnt = at::zeros({N, max_grid_total}, int_dtype);
+  auto grid_next = at::full({N, P}, -1, int_dtype); 
+  auto grid_idx = at::full({N, P}, -1, int_dtype); 
 
   InsertPointsCPU(
     points,
