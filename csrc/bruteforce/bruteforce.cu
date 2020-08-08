@@ -16,25 +16,25 @@ __global__ void FRNNBruteForceKernel(
     const int64_t* __restrict__ lengths2,
     scalar_t* __restrict__ dists,
     int64_t* __restrict__ idxs,
-    const int64_t N,
-    const int64_t P1,
-    const int64_t P2,
-    const float r2) {
+    int N,
+    int P1,
+    int P2,
+    float r2) {
   scalar_t cur_point[D];
   scalar_t min_dists[K];
   int min_idxs[K];
-  const int64_t chunks_per_cloud = (1 + (P1 - 1) / blockDim.x);
-  const int64_t chunks_to_do = N * chunks_per_cloud;
-  for (int64_t chunk = blockIdx.x; chunk < chunks_to_do; chunk += gridDim.x) {
-    const int64_t n = chunk / chunks_per_cloud;
-    const int64_t start_point = blockDim.x * (chunk % chunks_per_cloud);
-    int64_t p1 = start_point + threadIdx.x;
+  int chunks_per_cloud = (1 + (P1 - 1) / blockDim.x);
+  int chunks_to_do = N * chunks_per_cloud;
+  for (int chunk = blockIdx.x; chunk < chunks_to_do; chunk += gridDim.x) {
+    int n = chunk / chunks_per_cloud;
+    int start_point = blockDim.x * (chunk % chunks_per_cloud);
+    int p1 = start_point + threadIdx.x;
     if (p1 >= lengths1[n])
       continue;
     for (int d = 0; d < D; ++d) {
       cur_point[d] = points1[n * P1 * D + p1 * D + d];
     }
-    int64_t length2 = lengths2[n];
+    int length2 = lengths2[n];
     MinK<scalar_t, int> mink(min_dists, min_idxs, K);
     for (int p2 = 0; p2 < length2; ++p2) {
       scalar_t dist = 0;
@@ -60,18 +60,18 @@ __global__ void FRNNBruteForceKernel(
 template <typename scalar_t, int64_t D, int64_t K>
 struct FRNNBruteForceFunctor {
   static void run(
-      size_t blocks,
-      size_t threads,
+      int blocks,
+      int threads,
       const scalar_t* __restrict__ points1,
       const scalar_t* __restrict__ points2,
       const int64_t* __restrict__ lengths1,
       const int64_t* __restrict__ lengths2,
       scalar_t* __restrict__ dists,
       int64_t* __restrict__ idxs,
-      const int64_t N,
-      const int64_t P1,
-      const int64_t P2,
-      const float r2) {
+      int N,
+      int P1,
+      int P2,
+      float r2) {
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     FRNNBruteForceKernel<scalar_t, D, K><<<blocks, threads, 0, stream>>>(
         points1, points2, lengths1, lengths2, dists, idxs, N, P1, P2, r2);
@@ -89,7 +89,8 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
     const at::Tensor& lengths1,
     const at::Tensor& lengths2,
     int K,
-    float rsq) {
+    float r) {
+
   // Check inputs are on the same device
   at::TensorArg p1_t{p1, "p1", 1}, p2_t{p2, "p2", 2},
       lengths1_t{lengths1, "lengths1", 3}, lengths2_t{lengths2, "lengths2", 4};
@@ -101,12 +102,12 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
   at::cuda::CUDAGuard device_guard(p1.device());
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
-  const auto N = p1.size(0);
-  const auto P1 = p1.size(1);
-  const auto P2 = p2.size(1);
-  const auto D = p2.size(2);
-  const int64_t K_64 = K;
-  const float r2 = rsq;
+  auto N = p1.size(0);
+  auto P1 = p1.size(1);
+  auto P2 = p2.size(1);
+  auto D = p2.size(2);
+  int64_t K_64 = K;
+  float r2 = r * r;
 
   TORCH_CHECK(p2.size(2) == D, "Point sets must have the same last dimension");
   auto long_dtype = lengths1.options().dtype(at::kLong);
@@ -120,8 +121,8 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
 
   AT_ASSERTM(D >= V2_MIN_D && D <= V2_MAX_D && K >= V2_MIN_K && D <= V2_MAX_K, "Invalid range for K or D");
 
-  const size_t threads = 256;
-  const size_t blocks = 256;
+  int threads = 256;
+  int blocks = 256;
   AT_DISPATCH_FLOATING_TYPES(p1.scalar_type(), "frnn_kernel_cuda", ([&] {
                                DispatchKernel2D<
                                    FRNNBruteForceFunctor,
