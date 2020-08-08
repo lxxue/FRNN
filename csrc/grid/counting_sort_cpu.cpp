@@ -7,7 +7,6 @@ void CountingSortCPU(
     const at::Tensor grid_idx,
     const at::Tensor grid_off,
     at::Tensor sorted_points,
-    at::Tensor sorted_grid_cell,
     at::Tensor sorted_point_idx) {
 
   auto points_a = points.accessor<float, 3>();
@@ -16,7 +15,6 @@ void CountingSortCPU(
   auto grid_idx_a = grid_idx.accessor<int, 2>();
   auto grid_off_a = grid_off.accessor<int, 2>();
   auto sorted_points_a = sorted_points.accessor<float, 3>();
-  auto sorted_grid_cell_a = sorted_grid_cell.accessor<int, 2>();
   auto sorted_point_idx_a = sorted_point_idx.accessor<int, 2>();
 
   int N = points.size(0);
@@ -29,7 +27,6 @@ void CountingSortCPU(
       sorted_points_a[n][sorted_idx][0] = points_a[n][p][0];
       sorted_points_a[n][sorted_idx][1] = points_a[n][p][1];
       sorted_points_a[n][sorted_idx][2] = points_a[n][p][2];
-      sorted_grid_cell_a[n][sorted_idx] = cell_idx;
       sorted_point_idx_a[n][sorted_idx] = p;
     }
   }

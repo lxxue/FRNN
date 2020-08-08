@@ -1,3 +1,4 @@
+#pragma once
 #include <ATen/ATen.h>
 
 void CountingSortCUDA(
@@ -7,7 +8,6 @@ void CountingSortCUDA(
     const at::Tensor grid_idx,
     const at::Tensor grid_off,
     at::Tensor sorted_points,
-    at::Tensor sorted_grid_cell,
     at::Tensor sorted_point_idx);
 
 void CountingSortCPU(
@@ -17,5 +17,4 @@ void CountingSortCPU(
     const at::Tensor grid_idx,
     const at::Tensor grid_off,
     at::Tensor sorted_points,
-    at::Tensor sorted_grid_cell,
     at::Tensor sorted_point_idx);

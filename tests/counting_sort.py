@@ -46,8 +46,6 @@ class Test(unittest.TestCase):
 
     sorted_points_cpu = torch.zeros_like(self.pc)
     sorted_points_cuda = torch.zeros_like(self.pc_cuda)
-    sorted_grid_cell_cpu = -torch.ones_like(grid_cell_cpu)
-    sorted_grid_cell_cuda = -torch.ones_like(grid_cell_cuda)
     sorted_point_idx_cpu = -torch.ones_like(grid_cell_cpu)
     sorted_point_idx_cuda = -torch.ones_like(grid_cell_cuda)
 
@@ -63,7 +61,6 @@ class Test(unittest.TestCase):
       grid_idx_cpu,
       grid_off_cpu,
       sorted_points_cpu,
-      sorted_grid_cell_cpu,
       sorted_point_idx_cpu
     )
 
@@ -74,19 +71,15 @@ class Test(unittest.TestCase):
       grid_idx_cuda,
       grid_off_cuda,
       sorted_points_cuda,
-      sorted_grid_cell_cuda,
       sorted_point_idx_cuda
     )
 
     print(sorted_points_cpu[0, :10, :])
     print(sorted_points_cuda[0, :10, :])
-    print(sorted_grid_cell_cpu[0, :10])
-    print(sorted_grid_cell_cuda[0, :10])
     print(sorted_point_idx_cpu[0, :10])
     print(sorted_point_idx_cuda[0, :10])
 
     print(torch.allclose(sorted_points_cpu, sorted_points_cuda.cpu()))
-    print(torch.allclose(sorted_grid_cell_cpu, sorted_grid_cell_cuda.cpu()))
     print(torch.allclose(sorted_point_idx_cpu, sorted_point_idx_cuda.cpu()))
   
 

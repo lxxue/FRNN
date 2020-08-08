@@ -22,6 +22,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   
   m.def("find_nbrs_cuda", &FindNbrsCUDA);
   m.def("test_find_nbrs_cuda", &TestFindNbrsCUDA);
+  m.def("find_nbrs_cpu", &FindNbrsCPU);
+  m.def("test_find_nbrs_cpu", &TestFindNbrsCPU);
   
   m.def("frnn_bf_cuda", &FRNNBruteForceCUDA);
   m.def("frnn_bf_cpu", &FRNNBruteForceCPU);

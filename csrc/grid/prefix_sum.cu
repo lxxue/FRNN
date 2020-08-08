@@ -306,7 +306,7 @@ at::Tensor TestPrefixSumCUDA(
   float cell_size = r;
   GridParams* h_params = new GridParams[N];
   int max_grid_total = 0;
-  for (size_t i = 0; i < N; ++i) {
+  for (int i = 0; i < N; ++i) {
     SetupGridParams(
       bboxes.contiguous().data_ptr<float>() + i*6,
       cell_size,

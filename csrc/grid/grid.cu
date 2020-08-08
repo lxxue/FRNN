@@ -163,7 +163,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
   float cell_size = r;
   GridParams* h_params = new GridParams[N];
   int max_grid_total = 0;
-  for (size_t i = 0; i < N; ++i) {
+  for (int i = 0; i < N; ++i) {
     SetupGridParams(
       bboxes.contiguous().data_ptr<float>() + i*6,
       cell_size,
@@ -339,12 +339,11 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   int P2 = points2.size(1);
   int G = grid_off.size(1);
   
-  auto long_dtype = lengths1.options().dtype(at::kLong);
-  auto idxs = at::full({N, P1, K}, -1, long_dtype);
+  auto idxs = at::full({N, P1, K}, -1, lengths1.options());
   auto dists = at::full({N, P1, K}, -1, points1.options());
 
-  const size_t threads = 256;
-  const size_t blocks = 256;
+  int threads = 256;
+  int blocks = 256;
 
   //DispatchKernel1D<FindNbrsKernelFunctor, MIN_K, MAX_K>( 
   //  K,
@@ -386,7 +385,7 @@ std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
   float cell_size = r;
   GridParams* h_params = new GridParams[N];
   int max_grid_total = 0;
-  for (size_t i = 0; i < N; ++i) {
+  for (int i = 0; i < N; ++i) {
     SetupGridParams(
       bboxes.contiguous().data_ptr<float>() + i*6,
       cell_size,
@@ -418,7 +417,6 @@ std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
   auto grid_off = PrefixSumCUDA(grid_cnt, h_params);
 
   auto sorted_points2 = at::zeros({N, P2, 3}, points2.options());
-  auto sorted_grid_cell = at::full({N, P2}, -1, int_dtype);
   auto sorted_point_idx = at::full({N, P2}, -1, int_dtype);
 
   CountingSortCUDA(
@@ -428,7 +426,6 @@ std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
     grid_idx,
     grid_off,
     sorted_points2,
-    sorted_grid_cell,
     sorted_point_idx
   );
 
