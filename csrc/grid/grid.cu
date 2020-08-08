@@ -8,7 +8,7 @@
 #include "prefix_sum.h"
 #include "counting_sort.h"
 #include "utils/mink.cuh"
-#include "utils/dispatch.cuh"
+#include "utils/dispatch.h"
 
 #define MAX_RES 100
 
@@ -278,37 +278,35 @@ __global__ void FindNbrsKernel(
   }
 }
 
-/*
-// used for DispatchKernel1D
 template<int K>
 struct FindNbrsKernelFunctor {
   static void run(
-    size_t blocks,
-    size_t threads,
-    const float* __restrict__ points1,          // (N, P1, 3)
-    const float* __restrict__ points2,          // (N, P2, 3)
-    const int* __restrict__ lengths1,           // (N,)
-    const int* __restrict__ lengths2,           // (N,)
-    const int* __restirct__ grid_off,           // (N, G)
-    const int* __restrict__ sorted_point_idx,   // (N, P)
-    float* __restrict__ dists,                  // (N, P1, K)
-    int* __restrict__ idxs,                     // (N, P1, K)
-    int N,
-    int P1,
-    int P2,
-    int G,
-    const GridParams* params,                   // (N,)
-    float r) {
-      cudaStream_t stream = at::cuda::getCurrentCUDAStream();
-      FindNbrsKernel<<blocks, threads, 0, stream>>>(
-        points1, points2, lengths1, lengths2, grid_off, sorted_point_idx,
-        dists, idxs, N, P1, P2, G, params, r);
-    }
+      size_t blocks,
+      size_t threads,
+      const float* __restrict__ points1,          // (N, P1, 3)
+      const float* __restrict__ points2,          // (N, P2, 3)
+      const long* __restrict__ lengths1,           // (N,)
+      const long* __restrict__ lengths2,           // (N,)
+      const int* __restrict__ grid_off,           // (N, G)
+      const int* __restrict__ sorted_point_idx,   // (N, P)
+      float* __restrict__ dists,                  // (N, P1, K)
+      long* __restrict__ idxs,                     // (N, P1, K)
+      int N,
+      int P1,
+      int P2,
+      int G,
+      const GridParams* params,                   // (N,)
+      float r) {
+    cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+    FindNbrsKernel<K><<<blocks, threads, 0, stream>>>(
+      points1, points2, lengths1, lengths2, grid_off, sorted_point_idx,
+      dists, idxs, N, P1, P2, G, params, r);
+  }
 };
 
 constexpr int MIN_K = 1;
 constexpr int MAX_K = 32;
-*/
+
 std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     const at::Tensor points1,
     const at::Tensor points2,
@@ -345,11 +343,27 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   int threads = 256;
   int blocks = 256;
 
-  //DispatchKernel1D<FindNbrsKernelFunctor, MIN_K, MAX_K>( 
-  //  K,
-  //  blocks,
-  //  threads,
+  DispatchKernel1D<FindNbrsKernelFunctor, MIN_K, MAX_K>( 
+    K,
+    blocks,
+    threads,
+    points1.contiguous().data_ptr<float>(),
+    points2.contiguous().data_ptr<float>(),
+    lengths1.contiguous().data_ptr<long>(),
+    lengths2.contiguous().data_ptr<long>(),
+    grid_off.contiguous().data_ptr<int>(),
+    sorted_point_idx.contiguous().data_ptr<int>(),
+    dists.data_ptr<float>(),
+    idxs.data_ptr<long>(),
+    N,
+    P1,
+    P2,
+    G,
+    params,
+    r
+  );
 
+  /*
   // TODO: correctly use DispatchKernel1D here
   FindNbrsKernel<5><<<blocks, threads, 0, stream>>>(
     points1.contiguous().data_ptr<float>(),
@@ -367,7 +381,7 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     params,
     r
   );
-
+  */
   return std::make_tuple(idxs, dists);
 }
 
