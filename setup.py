@@ -7,7 +7,7 @@ from torch.utils.cpp_extension import CUDA_HOME, CppExtension, CUDAExtension
 
 def get_extensions():
     this_dir = os.path.dirname(os.path.abspath(__file__))
-    extensions_dir = os.path.join(this_dir, "csrc")
+    extensions_dir = os.path.join(this_dir, "frnn", "csrc")
     main_source = os.path.join(extensions_dir, "ext.cpp")
     sources = glob.glob(os.path.join(extensions_dir, "*", "*.cpp"))
     source_cuda = glob.glob(os.path.join(extensions_dir, "*", "*.cu"))
@@ -41,7 +41,7 @@ def get_extensions():
     include_dirs = torch.utils.cpp_extension.include_paths() + [extensions_dir]
     ext_modules = [
         extension(
-            "frnn",
+            "frnn._C",
             sources,
             include_dirs=include_dirs,
             define_macros=[],
@@ -68,7 +68,7 @@ setup(
     name="frnn",
     author="Lixin Xue, Yifan Wang",
     description="Fixed radius nearest neighbor search on gpu",
-    packages=find_packages(exclude=("deprecated", "tests")),
+    packages=find_packages(exclude=("tests")),
     ext_modules=get_extensions(),
     cmdclass={"build_ext": BuildExtension},
 )

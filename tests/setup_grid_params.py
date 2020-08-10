@@ -27,7 +27,7 @@ class Test(unittest.TestCase):
     pc = Pointclouds(self.pc)
     bboxes = pc.get_bounding_boxes() 
     print(bboxes[0])
-    frnn.test_setup_grid_params_cuda(bboxes, 0.1)
+    frnn._C.test_setup_grid_params_cuda(bboxes, 0.1)
 
 
 if __name__ == "__main__":

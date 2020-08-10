@@ -4,22 +4,27 @@ import unittest
 from pytorch3d.structures import Pointclouds
 from pytorch3d.ops.knn import knn_points
 
-import time
+# from pytorch3d.io import load_ply
+from pytorch_points.utils.pc_utils import read_ply
 
-def TimeFindNbrs(num_pcs, num_points):
+import time
+import argparse
+
+def TimeFindNbrs(num_pcs, num_points, fname=None):
   K = 5
   r = 0.1
   r2 = r * r
-  pc1 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
-  pc2 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
-  for i in range(num_pcs):
-    for j in range(3):
-      pc1[i, :, j] *= torch.rand(1)+0.5
-      pc2[i, :, j] *= torch.rand(1)+0.5
+  if fname is None:
+    pc1 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
+    pc2 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
+    for i in range(num_pcs):
+      for j in range(3):
+        pc1[i, :, j] *= torch.rand(1)+0.5
+        pc2[i, :, j] *= torch.rand(1)+0.5
+    lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points
+    lengths2 = torch.ones((num_pcs,), dtype=torch.long) * num_points
   pc1_cuda = pc1.cuda()
   pc2_cuda = pc2.cuda()
-  lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points
-  lengths2 = torch.ones((num_pcs,), dtype=torch.long) * num_points
   lengths1_cuda = lengths1.cuda()
   lengths2_cuda = lengths2.cuda()
 
@@ -101,11 +106,14 @@ def TimeFindNbrs(num_pcs, num_points):
 
 
 if __name__ == "__main__":
-  TimeFindNbrs(1, 10000)
-  TimeFindNbrs(1, 100000)
-  TimeFindNbrs(1, 1000000)
-  TimeFindNbrs(10, 10000)
-  TimeFindNbrs(10, 100000)
-  TimeFindNbrs(10, 1000000)
+  # parser = argparse.ArgumentParser()
+  # parser.add_argument("--pc", type=str, default=None)
+  # args = parser.parse_args()
+  TimeFindNbrs(1, 10000, args.pc)
+  TimeFindNbrs(1, 100000, args.pc)
+  TimeFindNbrs(1, 1000000, args.pc)
+  TimeFindNbrs(10, 10000, args.pc)
+  TimeFindNbrs(10, 100000, args.pc)
+  TimeFindNbrs(10, 1000000, args.pc)
   
   
