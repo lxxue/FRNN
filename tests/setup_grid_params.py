@@ -19,16 +19,12 @@ class Test(unittest.TestCase):
   lengths_cuda = lengths.cuda()
 
   def test_setup_grid_params_cuda(self):
-    # in real usage should take lengths into account!
-    # bbox_min = self.pc.min(dim=1)[0]
-    # bbox_max = self.pc.max(dim=1)[0]
-    # print(bbox_min)
-    # print(bbox_max)
-    pc = Pointclouds(self.pc)
+    pc_list = [self.pc[i, :self.lengths[i]] for i in range(len(self.pc))]
+    pc = Pointclouds(pc_list)
     bboxes = pc.get_bounding_boxes() 
-    print(bboxes[0])
     frnn._C.test_setup_grid_params_cuda(bboxes, 0.1)
-    frnn.frnn_grid_points(self.pc_cuda, self.pc_cuda, K=5, r=0.1)
+    # need to modify frnn_grid_points to print params
+    frnn.frnn_grid_points(self.pc_cuda, self.pc_cuda, self.lengths_cuda, self.lengths_cuda, K=5, r=0.1)
 
 
 if __name__ == "__main__":

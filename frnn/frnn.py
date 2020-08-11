@@ -54,6 +54,7 @@ def frnn_grid_points(
   N = points1.shape[0]
   grid_params_cuda = torch.zeros((N, GRID_PARAMS_SIZE), dtype=torch.float, device=points1.device)
 
+  G = -1
   for i in range(N):
     # 0-2 grid_min; 3 grid_delta; 4-6 grid_res; 7 grid_total
     grid_min = points2[i, :lengths2[i]].min(dim=0)[0]
@@ -66,9 +67,17 @@ def frnn_grid_points(
     grid_params_cuda[i, 3] = 1 / cell_size
     grid_params_cuda[i, 4:7] = torch.floor(grid_size / cell_size) + 1
     grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
+    if G < grid_params_cuda[i, 7]:
+      G = int(grid_params_cuda[i, 7].item())
   
-  print(grid_params_cuda)
+  # print("Grid Params:\n", grid_params_cuda)
 
-  return
+  grid_cnt = torch.zeros((N, G), dtype=torch.int, device=points1.device)
+  grid_cell = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+  grid_idx = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+
+  _C.insert_points_cuda(points2, lengths2, grid_params_cuda, grid_cnt, grid_cell, grid_idx, G)
+
+  return grid_cnt, grid_cell, grid_idx
 
 

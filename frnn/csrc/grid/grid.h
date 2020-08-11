@@ -36,6 +36,7 @@ void TestSetupGridParamsCUDA(
 /* Now setup grid params in python
 */
 
+/*
 void InsertPointsCUDA(
     const at::Tensor points,  
     const at::Tensor lengths, 
@@ -45,13 +46,27 @@ void InsertPointsCUDA(
     int G,
     const GridParams* params);
 
-
 std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
    const at::Tensor bboxes,  
    const at::Tensor points,  
    const at::Tensor lengths,
    float r);
+*/
 
+void InsertPointsCUDA(
+    const at::Tensor points,    // (N, P, 3)
+    const at::Tensor lengths,   // (N,)
+    const at::Tensor params,    // (N, 8)
+    at::Tensor grid_cnt,        // (N, G)
+    at::Tensor grid_cell,       // (N, P)      
+    at::Tensor grid_idx,        // (N, P)
+    int G);
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
+    const at::Tensor points,  
+    const at::Tensor lengths,
+    const at::Tensor params,
+    int G);
 
 void InsertPointsCPU(
     const at::Tensor points, 

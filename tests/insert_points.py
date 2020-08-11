@@ -14,33 +14,22 @@ class Test(unittest.TestCase):
   for i in range(num_pcs):
     for j in range(3):
       pc[i, :, j] *= torch.rand(1)+0.5
-      # pc[i, :, j] *= 1
   pc_cuda = pc.cuda()
   lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.long)
   lengths_cuda = lengths.cuda()
 
   def test_insert_points_cuda(self):
-    pc = Pointclouds(self.pc)
+    pc_list = [self.pc[i, :self.lengths[i]] for i in range(len(self.pc))]
+    pc = Pointclouds(pc_list)
+    # pc = Pointclouds(self.pc)
     bboxes = pc.get_bounding_boxes() 
-    grid_cnt_cpu, grid_cell_cpu, grid_idx_cpu = frnn.test_insert_points_cpu(bboxes, self.pc, self.lengths, self.r)
-    grid_cnt_cuda, grid_cell_cuda, grid_idx_cuda = frnn.test_insert_points_cuda(bboxes, self.pc_cuda, self.lengths_cuda, self.r)
-    # print(grid_cnt_cpu.shape)
-    # print(grid_cnt_cuda.shape)
-    # print(grid_cell_cpu.shape)
-    # print(grid_cell_cuda.shape)
-    # print(grid_cnt_cpu[1, :10])
-    # print(grid_cnt_cuda[1, :10])
-    # print(grid_cell_cpu[1, :10])
-    # print(grid_cell_cuda[1, :10])
-    print(self.pc[1])
-    print(grid_cnt_cpu[1])
-    print(grid_cnt_cuda[1])
-    print(grid_cell_cpu[1])
-    print(grid_cell_cuda[1])
-    print(torch.allclose(grid_cell_cpu[0], grid_cell_cuda[0].cpu()))
-    print(torch.allclose(grid_cnt_cpu[0], grid_cnt_cuda[0].cpu()))
-    print(torch.allclose(grid_cell_cpu[1], grid_cell_cuda[1].cpu()))
-    print(torch.allclose(grid_cnt_cpu[1], grid_cnt_cuda[1].cpu()))
+    grid_cnt_cpu, grid_cell_cpu, grid_idx_cpu = frnn._C.test_insert_points_cpu(bboxes, self.pc, self.lengths, self.r)
+    # grid_cnt_cuda, grid_cell_cuda, grid_idx_cuda = frnn.test_insert_points_cuda(bboxes, self.pc_cuda, self.lengths_cuda, self.r)
+    grid_cnt_cuda, grid_cell_cuda, grid_idx_cuda = frnn.frnn_grid_points(self.pc_cuda, self.pc_cuda, self.lengths_cuda, self.lengths_cuda, K=5, r=0.1)
+    # print(torch.allclose(grid_cell_cpu[0], grid_cell_cuda[0].cpu()))
+    # print(torch.allclose(grid_cnt_cpu[0], grid_cnt_cuda[0].cpu()))
+    # print(torch.allclose(grid_cell_cpu[1], grid_cell_cuda[1].cpu()))
+    # print(torch.allclose(grid_cnt_cpu[1], grid_cnt_cuda[1].cpu()))
     print(torch.allclose(grid_cell_cpu, grid_cell_cuda.cpu()))
     print(torch.allclose(grid_cnt_cpu, grid_cnt_cuda.cpu()))
 

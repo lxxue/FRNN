@@ -90,10 +90,10 @@ void TestSetupGridParamsCUDA(
   cudaMemcpy(h_d_params, d_params, N*sizeof(GridParams), cudaMemcpyDeviceToHost);
   for (int i = 0; i < N; ++i) {
     std::cout << h_d_params[i].grid_min.x << ' ' << h_d_params[i].grid_min.y << ' ' << h_d_params[i].grid_min.z << std::endl;
-    std::cout << h_d_params[i].grid_max.x << ' ' << h_d_params[i].grid_max.y << ' ' << h_d_params[i].grid_max.z << std::endl;
+    // std::cout << h_d_params[i].grid_max.x << ' ' << h_d_params[i].grid_max.y << ' ' << h_d_params[i].grid_max.z << std::endl;
     std::cout << h_d_params[i].grid_res.x << ' ' << h_d_params[i].grid_res.y << ' ' << h_d_params[i].grid_res.z << std::endl;
     std::cout << h_d_params[i].grid_total << ' ' << h_d_params[i].grid_delta << ' ' << std::endl; 
-    std::cout << h_d_params[i].grid_size.x << ' ' << h_d_params[i].grid_size.y << ' ' << h_d_params[i].grid_size.z << std::endl;
+    // std::cout << h_d_params[i].grid_size.x << ' ' << h_d_params[i].grid_size.y << ' ' << h_d_params[i].grid_size.z << std::endl;
   }
   delete[] h_params;
   delete[] h_d_params;
@@ -103,6 +103,7 @@ void TestSetupGridParamsCUDA(
 /*
 */
 
+/*
 __global__ void InsertPointsKernel(
     const float* __restrict__ points,
     const long* __restrict__ lengths,
@@ -222,6 +223,113 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
   cudaFree(d_params);
   return std::make_tuple(grid_cnt, grid_cell, grid_idx);
 }
+*/
+
+__global__ void InsertPointsKernel(
+    const float* __restrict__ points,
+    const long* __restrict__ lengths,
+    const float* __restrict__ params,
+    int* grid_cnt, // not sure if we can use __restrict__ here
+    int* __restrict__ grid_cell,
+    int* __restrict__ grid_idx,
+    int N,
+    int P,
+    int G) {
+
+  int chunks_per_cloud = (1 + (P - 1) / blockDim.x);
+  int chunks_to_do = N * chunks_per_cloud;
+  for (int chunk=blockIdx.x; chunk < chunks_to_do; chunk += gridDim.x) {
+    int n = chunk / chunks_per_cloud;
+    int start_point = blockDim.x * (chunk % chunks_per_cloud);
+    int p = start_point + threadIdx.x;
+    if (p >= lengths[n])
+      continue;
+
+    float grid_min_x = params[n*GRID_PARAMS_SIZE+GRID_MIN_X];
+    float grid_min_y = params[n*GRID_PARAMS_SIZE+GRID_MIN_Y];
+    float grid_min_z = params[n*GRID_PARAMS_SIZE+GRID_MIN_Z];
+    float grid_delta = params[n*GRID_PARAMS_SIZE+GRID_DELTA];
+    // int grid_res_x = params[n*GRID_PARAMS_SIZE+GRID_RES_X];
+    int grid_res_y = params[n*GRID_PARAMS_SIZE+GRID_RES_Y];
+    int grid_res_z = params[n*GRID_PARAMS_SIZE+GRID_RES_Z];
+
+    int gc_x = (int) ((points[(n*P+p)*3+0]-grid_min_x) * grid_delta);
+    int gc_y = (int) ((points[(n*P+p)*3+1]-grid_min_y) * grid_delta);
+    int gc_z = (int) ((points[(n*P+p)*3+2]-grid_min_z) * grid_delta);
+
+    int gs = (gc_x*grid_res_y + gc_y) * grid_res_z + gc_z;
+    grid_cell[n*P+p] = gs;
+    grid_idx[n*P+p] = atomicAdd(&grid_cnt[n*G + gs], 1);
+  } 
+}
+
+void InsertPointsCUDA(
+    const at::Tensor points,    // (N, P, 3)
+    const at::Tensor lengths,   // (N,)
+    const at::Tensor params,    // (N, 8)
+    at::Tensor grid_cnt,        // (N, G)
+    at::Tensor grid_cell,       // (N, P)      
+    at::Tensor grid_idx,        // (N, P)
+    int G) {
+  
+  at::TensorArg points_t{points, "points", 1};
+  at::TensorArg lengths_t{lengths, "lengths", 2};
+  at::TensorArg params_t{params, "params", 3};
+  at::TensorArg grid_cnt_t{grid_cnt, "grid_cnt", 4};
+  at::TensorArg grid_cell_t{grid_cell, "grid_cell", 5};
+  at::TensorArg grid_idx_t{grid_idx, "grid_idx", 6};
+
+  at::CheckedFrom c = "InsertPointsCUDA";
+  at::checkAllSameGPU(c, {points_t, lengths_t, params_t, grid_cnt_t, grid_cell_t, grid_idx_t});
+  at::checkAllSameType(c, {grid_cnt_t, grid_cell_t, grid_idx_t});
+
+  at::cuda::CUDAGuard device_guard(points.device());
+  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+
+  int threads = 256;
+  int blocks = 256;
+
+  InsertPointsKernel<<<blocks, threads, 0, stream>>>(
+    points.contiguous().data_ptr<float>(),
+    lengths.contiguous().data_ptr<long>(),
+    params.contiguous().data_ptr<float>(),
+    grid_cnt.contiguous().data_ptr<int>(),
+    grid_cell.contiguous().data_ptr<int>(),
+    grid_idx.contiguous().data_ptr<int>(),
+    points.size(0),
+    points.size(1),
+    G
+  );
+  AT_CUDA_CHECK(cudaGetLastError());
+}
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
+    const at::Tensor points,  
+    const at::Tensor lengths,
+    const at::Tensor params,
+    int G) {
+  int N = points.size(0); 
+  int P = points.size(1);
+  auto int_dtype = lengths.options().dtype(at::kInt);
+
+  auto grid_cnt = at::zeros({N, G}, int_dtype);
+  auto grid_cell = at::full({N, P}, -1, int_dtype); 
+  auto grid_idx = at::full({N, P}, -1, int_dtype);
+
+  InsertPointsCUDA(
+    points,
+    lengths,
+    params,
+    grid_cnt,
+    grid_cell,
+    grid_idx,
+    G
+  );
+
+  return std::make_tuple(grid_cnt, grid_cell, grid_idx);
+}
+
+
 
 template<int K>
 __global__ void FindNbrsKernel(
@@ -444,6 +552,7 @@ std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
   auto grid_cell = at::full({N, P2}, -1, int_dtype); 
   auto grid_idx = at::full({N, P2}, -1, int_dtype);
 
+  /*
   InsertPointsCUDA(
     points2,
     lengths2,
@@ -453,6 +562,7 @@ std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
     max_grid_total,
     d_params
   );
+  */
 
   auto grid_off = PrefixSumCUDA(grid_cnt, h_params);
 
