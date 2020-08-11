@@ -1,6 +1,18 @@
 #pragma once
 #include "utils/cutil_math.h"
 
+#define GRID_MIN_X 0
+#define GRID_MIN_Y 1
+#define GRID_MIN_Z 2
+#define GRID_DELTA 3
+#define GRID_RES_X 4
+#define GRID_RES_Y 5
+#define GRID_RES_Z 6
+#define GRID_TOTAL 7
+#define GRID_PARAMS_SIZE 8
+
+#define MAX_RES 100
+// now use at::Tensor to store grid params
 // TODO: to need to store grid_size and grid_max
 struct GridParams {
   float3 grid_size, grid_min, grid_max;
@@ -21,6 +33,8 @@ void SetupGridParams(
 void TestSetupGridParamsCUDA(
     at::Tensor bboxes,
     float r);
+/* Now setup grid params in python
+*/
 
 void InsertPointsCUDA(
     const at::Tensor points,  

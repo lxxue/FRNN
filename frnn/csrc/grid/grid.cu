@@ -10,7 +10,6 @@
 #include "utils/mink.cuh"
 #include "utils/dispatch.h"
 
-#define MAX_RES 100
 
 void SetupGridParams(
     float* bboxes,
@@ -36,6 +35,31 @@ void SetupGridParams(
 
   return;
 }
+/*
+void SetupGridParams(
+    float* bboxes,
+    float cell_size,
+    float* params) {
+  params[GRID_MIN_X] = bboxes[0];
+  params[GRID_MIN_Y] = bboxes[2];
+  params[GRID_MIN_Z] = bboxes[4];
+  float grid_size_x = bboxes[1] - bboxes[0];
+  float grid_size_y = bboxes[3] - bboxes[2];
+  float grid_size_z = bboxes[5] - bboxes[4];
+
+  float res_min = std::min(std::min(grid_size_x, grid_size_y), grid_size_z);
+  if (cell_size < res_min/MAX_RES)
+    cell_size = res_min / MAX_RES;
+  params[GRID_RES_X] = (int)(grid_size_x / cell_size) + 1;
+  params[GRID_RES_Y] = (int)(grid_size_y / cell_size) + 1;
+  params[GRID_RES_Z] = (int)(grid_size_z / cell_size) + 1;
+  params[GRID_TOTAL]= params[GRID_RES_X] * params[GRID_RES_Y] * params[GRID_RES_Z];
+
+  params[GRID_DELTA] = 1 / cell_size;
+
+  return;
+}
+*/
 
 void TestSetupGridParamsCUDA(
     const at::Tensor bboxes,  // N x 3 x 2 (min, max) at last dimension
@@ -76,6 +100,8 @@ void TestSetupGridParamsCUDA(
   cudaFree(d_params);
   return;
 }
+/*
+*/
 
 __global__ void InsertPointsKernel(
     const float* __restrict__ points,
