@@ -2,3 +2,4 @@ build/
 *.so
 *.egg-info/
 .vscode/
+data/
