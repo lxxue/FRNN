@@ -46,15 +46,6 @@ class Test(unittest.TestCase):
       K = self.K,
       r = self.r
     )
-    # idxs_cuda, dists_cuda = frnn.test_find_nbrs_cuda(
-    #   bboxes2, 
-    #   self.pc1_cuda, 
-    #   self.pc2_cuda, 
-    #   self.lengths1_cuda,
-    #   self.lengths2_cuda,
-    #   self.K,
-    #   self.r
-    # )
 
     idxs_cpu_bf, dists_cpu_bf = frnn._C.frnn_bf_cpu(
       self.pc1,

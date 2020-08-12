@@ -45,21 +45,47 @@ def TimeFindNbrs(num_pcs, num_points, fname=None):
   start = torch.cuda.Event(enable_timing=True)
   end = torch.cuda.Event(enable_timing=True)
   start.record()
-  idxs_cuda, dists_cuda = frnn.test_find_nbrs_cuda(
-    bboxes2, 
-    pc1_cuda, 
-    pc2_cuda, 
+
+  idxs_cuda, dists_cuda, nn, grid = frnn.frnn_grid_points(
+    pc1_cuda,
+    pc2_cuda,
     lengths1_cuda,
     lengths2_cuda,
-    K,
-    r
+    K = K,
+    r = r,
+    return_grid = True
   )
+  # idxs_cuda, dists_cuda = frnn.test_find_nbrs_cuda(
+  #   bboxes2, 
+  #   pc1_cuda, 
+  #   pc2_cuda, 
+  #   lengths1_cuda,
+  #   lengths2_cuda,
+  #   K,
+  #   r
+  # )
   end.record()
   torch.cuda.synchronize()
   grid_time = start.elapsed_time(end)
 
+  start = torch.cuda.Event(enable_timing=True)
+  end = torch.cuda.Event(enable_timing=True)
+  start.record()
+  idxs_cuda_2, dists_cuda_2, nn, _ = frnn.frnn_grid_points(
+    pc1_cuda,
+    pc2_cuda,
+    lengths1_cuda,
+    lengths2_cuda,
+    grid,
+    K = K,
+    r = r,
+  )
+  end.record()
+  torch.cuda.synchronize()
+  grid_search_time = start.elapsed_time(end)
 
-  
+
+
   start = torch.cuda.Event(enable_timing=True)
   end = torch.cuda.Event(enable_timing=True)
   start.record()
@@ -77,7 +103,7 @@ def TimeFindNbrs(num_pcs, num_points, fname=None):
   start = torch.cuda.Event(enable_timing=True)
   end = torch.cuda.Event(enable_timing=True)
   start.record()
-  idxs_cuda_bf, dists_cuda_bf = frnn.frnn_bf_cuda(
+  idxs_cuda_bf, dists_cuda_bf = frnn._C.frnn_bf_cuda(
     pc1_cuda,
     pc2_cuda,
     lengths1_cuda,
@@ -88,8 +114,6 @@ def TimeFindNbrs(num_pcs, num_points, fname=None):
   end.record()
   torch.cuda.synchronize()
   bf_time = start.elapsed_time(end)
-
-
 
   # t4 = time.time()
 
@@ -102,13 +126,14 @@ def TimeFindNbrs(num_pcs, num_points, fname=None):
   # print("time grid cuda {:.8f}s".format(t4 - t3))
   print("#pcs: {:d}; #points {:d};".format(num_pcs, num_points))
   print("\tgrid vs bf # diff keys: ", torch.sum(idxs_cuda != idxs_cuda_bf).item())
-  print("\tknn time: {:.2f}; bf time: {:.2f}; grid time: {:.2f}".format(knn_time, bf_time, grid_time))
+  print("\tgrid from scratch vs grid reuse # diff keys: ", torch.sum(idxs_cuda != idxs_cuda_2).item())
+  print("\tknn time: {:.2f}; bf time: {:.2f}; grid time: {:.2f}; grid search time: {:.2f}".format(knn_time, bf_time, grid_time, grid_search_time))
 
 
 if __name__ == "__main__":
-  # parser = argparse.ArgumentParser()
-  # parser.add_argument("--pc", type=str, default=None)
-  # args = parser.parse_args()
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--pc", type=str, default=None)
+  args = parser.parse_args()
   TimeFindNbrs(1, 10000, args.pc)
   TimeFindNbrs(1, 100000, args.pc)
   TimeFindNbrs(1, 1000000, args.pc)
