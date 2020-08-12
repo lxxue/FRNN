@@ -14,33 +14,42 @@ class Test(unittest.TestCase):
   for i in range(num_pcs):
     for j in range(3):
       pc[i, :, j] *= torch.rand(1)+0.5
-      # pc[i, :, j] *= 1
   pc_cuda = pc.cuda()
   lengths = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.long)
   lengths_cuda = lengths.cuda()
 
   def test_counting_sort_cuda(self):
-    pc = Pointclouds(self.pc)
+    pc_list = [self.pc[i, :self.lengths[i]] for i in range(len(self.pc))]
+    pc = Pointclouds(pc_list)
     bboxes = pc.get_bounding_boxes() 
-    grid_cnt_cpu, grid_cell_cpu, grid_idx_cpu = frnn.test_insert_points_cpu(bboxes, self.pc, self.lengths, self.r)
-    grid_cnt_cuda, grid_cell_cuda, grid_idx_cuda = frnn.test_insert_points_cuda(bboxes, self.pc_cuda, self.lengths_cuda, self.r)
+    grid_cnt_cpu, grid_cell_cpu, grid_idx_cpu = frnn._C.test_insert_points_cpu(bboxes, self.pc, self.lengths, self.r)
+    # grid_cnt_cuda, grid_cell_cuda, grid_idx_cuda = frnn.test_insert_points_cuda(bboxes, self.pc_cuda, self.lengths_cuda, self.r)
+    grid_off_cuda, grid_cnt_cuda, grid_cell_cuda, grid_idx_cuda = frnn.frnn_grid_points(
+      self.pc_cuda,
+      self.pc_cuda,
+      self.lengths_cuda,
+      self.lengths_cuda,
+      K = self.K,
+      r = self.r
+    )
+    # this may differ the point insertion order is random in cuda
     grid_idx_cpu = grid_idx_cuda.cpu()
     print(torch.allclose(grid_cell_cpu, grid_cell_cuda.cpu()))
     print(torch.allclose(grid_cnt_cpu, grid_cnt_cuda.cpu()))
     # grid_off_cpu = frnn.prefix_sum_cpu(grid_cnt_cpu)
     # grid_off_cuda = frnn.prefix_sum_cuda(grid_cnt_cuda)
-    grid_off_cpu = frnn.test_prefix_sum_cpu(
+    grid_off_cpu = frnn._C.test_prefix_sum_cpu(
       bboxes,
       self.pc,
       self.lengths,
       self.r
     )
-    grid_off_cuda = frnn.test_prefix_sum_cuda(
-      bboxes,
-      self.pc_cuda,
-      self.lengths_cuda,
-      self.r
-    )
+    # grid_off_cuda = frnn.test_prefix_sum_cuda(
+    #   bboxes,
+    #   self.pc_cuda,
+    #   self.lengths_cuda,
+    #   self.r
+    # )
 
     print(torch.allclose(grid_off_cpu, grid_off_cuda.cpu()))
 
@@ -49,12 +58,7 @@ class Test(unittest.TestCase):
     sorted_point_idx_cpu = -torch.ones_like(grid_cell_cpu)
     sorted_point_idx_cuda = -torch.ones_like(grid_cell_cuda)
 
-    # print(self.pc, self.lengths)
-    # print(grid_cell_cpu)
-    # print(grid_idx_cpu)
-    # print(grid_off_cpu)
-
-    frnn.counting_sort_cpu(
+    frnn._C.counting_sort_cpu(
       self.pc,
       self.lengths,
       grid_cell_cpu,
@@ -64,7 +68,7 @@ class Test(unittest.TestCase):
       sorted_point_idx_cpu
     )
 
-    frnn.counting_sort_cuda(
+    frnn._C.counting_sort_cuda(
       self.pc_cuda,
       self.lengths_cuda,
       grid_cell_cuda,
@@ -74,10 +78,10 @@ class Test(unittest.TestCase):
       sorted_point_idx_cuda
     )
 
-    print(sorted_points_cpu[0, :10, :])
-    print(sorted_points_cuda[0, :10, :])
-    print(sorted_point_idx_cpu[0, :10])
-    print(sorted_point_idx_cuda[0, :10])
+    # print(sorted_points_cpu[0, :10, :])
+    # print(sorted_points_cuda[0, :10, :])
+    # print(sorted_point_idx_cpu[0, :10])
+    # print(sorted_point_idx_cuda[0, :10])
 
     print(torch.allclose(sorted_points_cpu, sorted_points_cuda.cpu()))
     print(torch.allclose(sorted_point_idx_cpu, sorted_point_idx_cuda.cpu()))

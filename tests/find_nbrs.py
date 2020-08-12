@@ -24,10 +24,11 @@ class Test(unittest.TestCase):
   lengths2_cuda = lengths2.cuda()
 
   def test_find_nbrs_cuda(self):
-    pc2 = Pointclouds(self.pc2)
-    bboxes2 = pc2.get_bounding_boxes() 
+    pc2_list = [self.pc2[i, :self.lengths2[i]] for i in range(len(self.pc2))]
+    pc2 = Pointclouds(pc2_list)
+    bboxes2 = pc2.get_bounding_boxes()
 
-    idxs_cpu, dists_cpu = frnn.test_find_nbrs_cpu(
+    idxs_cpu, dists_cpu = frnn._C.test_find_nbrs_cpu(
       bboxes2,
       self.pc1,
       self.pc2,
@@ -37,17 +38,25 @@ class Test(unittest.TestCase):
       self.r
     )
 
-    idxs_cuda, dists_cuda = frnn.test_find_nbrs_cuda(
-      bboxes2, 
-      self.pc1_cuda, 
-      self.pc2_cuda, 
+    idxs_cuda, dists_cuda = frnn.frnn_grid_points(
+      self.pc1_cuda,
+      self.pc2_cuda,
       self.lengths1_cuda,
       self.lengths2_cuda,
-      self.K,
-      self.r
+      K = self.K,
+      r = self.r
     )
+    # idxs_cuda, dists_cuda = frnn.test_find_nbrs_cuda(
+    #   bboxes2, 
+    #   self.pc1_cuda, 
+    #   self.pc2_cuda, 
+    #   self.lengths1_cuda,
+    #   self.lengths2_cuda,
+    #   self.K,
+    #   self.r
+    # )
 
-    idxs_cpu_bf, dists_cpu_bf = frnn.frnn_bf_cpu(
+    idxs_cpu_bf, dists_cpu_bf = frnn._C.frnn_bf_cpu(
       self.pc1,
       self.pc2,
       self.lengths1,
@@ -56,7 +65,7 @@ class Test(unittest.TestCase):
       self.r
     )
 
-    idxs_cuda_bf, dists_cuda_bf = frnn.frnn_bf_cuda(
+    idxs_cuda_bf, dists_cuda_bf = frnn._C.frnn_bf_cuda(
       self.pc1_cuda,
       self.pc2_cuda,
       self.lengths1_cuda,
@@ -64,20 +73,6 @@ class Test(unittest.TestCase):
       self.K,
       self.r
     )
-    print(idxs_cuda[0, :10])
-    print(idxs_cpu[0, :10])
-    print(dists_cuda[0, :10])
-    print(dists_cpu[0, :10])
-    # print(idxs_cuda_bf[0, :10])
-    # print(idxs_cuda_bf[0, :10])
-    # print(idxs_cuda[0, :10])
-    # print(idxs_cuda_bf[0, :10])
-    # print(dists_cuda[0, :10])
-    # print(dists_cuda_bf[0, :10])
-    # print(idxs_cuda[1, :10])
-    # print(idxs_cuda_bf[1, :10])
-    # print(dists_cuda[1, :10])
-    # print(dists_cuda_bf[1, :10])
     print("cpu vs cuda idx bf: ", torch.allclose(idxs_cpu_bf, idxs_cuda_bf.cpu()))
     print("cpu vs cuda dists bf: ", torch.allclose(dists_cpu_bf, dists_cuda_bf.cpu()))
 

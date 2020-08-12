@@ -13,7 +13,7 @@
 
 #define MAX_RES 100
 // now use at::Tensor to store grid params
-// TODO: to need to store grid_size and grid_max
+// this struct and corresponding CPU function are now for validation only
 struct GridParams {
   float3 grid_size, grid_min, grid_max;
   int3 grid_res;
@@ -62,12 +62,13 @@ void InsertPointsCUDA(
     at::Tensor grid_idx,        // (N, P)
     int G);
 
+/*
 std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
     const at::Tensor points,  
     const at::Tensor lengths,
     const at::Tensor params,
     int G);
-
+*/
 void InsertPointsCPU(
     const at::Tensor points, 
     const at::Tensor lengths, 
@@ -85,6 +86,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCPU(
     const at::Tensor lengths,
     float r);
 
+/*
 std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     const at::Tensor points1,
     const at::Tensor points2,
@@ -95,7 +97,6 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     const GridParams* params,
     int K,
     float r);
-
   
 std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
     const at::Tensor bboxes,  
@@ -105,6 +106,19 @@ std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
     const at::Tensor lengths2,
     int K,
     float r);
+*/
+
+std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
+    const at::Tensor points1,
+    const at::Tensor points2,
+    const at::Tensor lengths1,
+    const at::Tensor lengths2,
+    const at::Tensor grid_off,
+    const at::Tensor sorted_point_idx,
+    const at::Tensor params,
+    int K,
+    float r);
+ 
 
 std::tuple<at::Tensor, at::Tensor> FindNbrsCPU(
     const at::Tensor points1,          // (N, P1, 3)

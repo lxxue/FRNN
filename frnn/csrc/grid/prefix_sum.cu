@@ -266,6 +266,7 @@ void prescanArrayRecursiveInt (int *outArray, const int *inArray, int numElement
     }
 }
 
+/*
 at::Tensor PrefixSumCUDA(
     const at::Tensor grid_cnt,
     const GridParams* params) {
@@ -328,7 +329,6 @@ at::Tensor TestPrefixSumCUDA(
   auto grid_idx = at::full({N, P}, -1, int_dtype);
 
   // we use params inside the kernel function, so pass d_params
-  /*
   InsertPointsCUDA(
     points,
     lengths,
@@ -338,7 +338,6 @@ at::Tensor TestPrefixSumCUDA(
     max_grid_total,
     d_params
   );
-  */
   // we only use params.grid_total on cpu, so pass h_params
   auto grid_off = PrefixSumCUDA(
     grid_cnt,
@@ -347,5 +346,31 @@ at::Tensor TestPrefixSumCUDA(
 
   delete[] h_params;
   cudaFree(d_params);
+  return grid_off;
+}
+*/
+
+// params should be located on cpu
+at::Tensor PrefixSumCUDA(
+    const at::Tensor grid_cnt,
+    const at::Tensor params) {
+  int N = grid_cnt.size(0);
+  int G = grid_cnt.size(1);
+
+  auto params_a = params.accessor<float, 2>();
+  at::Tensor grid_off = at::full({N, G}, -1, grid_cnt.options());
+  for (int n = 0; n < N; ++n) {
+    // std::cout << "prefixsum iter " << n << std::endl;
+    int num_grids = params_a[n][GRID_TOTAL];
+
+    preallocBlockSumsInt(num_grids);
+    prescanArrayRecursiveInt(
+      grid_off.contiguous().data_ptr<int>() + n*G,
+      grid_cnt.contiguous().data_ptr<int>() + n*G,
+      num_grids,
+      0
+    );
+    deallocBlockSumsInt();
+  }
   return grid_off;
 }

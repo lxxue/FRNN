@@ -69,7 +69,8 @@ def frnn_grid_points(
     grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
     if G < grid_params_cuda[i, 7]:
       G = int(grid_params_cuda[i, 7].item())
-  
+
+  # test setup_grid_params  
   # print("Grid Params:\n", grid_params_cuda)
 
   grid_cnt = torch.zeros((N, G), dtype=torch.int, device=points1.device)
@@ -78,6 +79,39 @@ def frnn_grid_points(
 
   _C.insert_points_cuda(points2, lengths2, grid_params_cuda, grid_cnt, grid_cell, grid_idx, G)
 
-  return grid_cnt, grid_cell, grid_idx
+  # test insert_points
+  # return grid_cnt, grid_cell, grid_idx
 
+  grid_off = _C.prefix_sum_cuda(grid_cnt, grid_params_cuda.cpu())
+  # test_prefix_sum
+  # return grid_off
+  # test_counting_sort (need to output grid_idx for comparison)
+  # return grid_off, grid_cnt, grid_cell, grid_idx
+
+  sorted_points2 = torch.zeros((N, P2, 3), dtype=torch.float, device=points1.device)
+  sorted_points2_idx = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+
+  _C.counting_sort_cuda(
+    points2,
+    lengths2,
+    grid_cell,
+    grid_idx,
+    grid_off,
+    sorted_points2,
+    sorted_points2_idx
+  )
+
+  idxs, dists = _C.find_nbrs_cuda(
+    points1,
+    sorted_points2,
+    lengths1,
+    lengths2,
+    grid_off,
+    sorted_points2_idx,
+    grid_params_cuda,
+    K,
+    r
+  )
+
+  return idxs, dists
 
