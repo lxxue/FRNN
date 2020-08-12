@@ -44,99 +44,47 @@ class TimeFRNN:
     self.lengths1_cuda = lengths1.cuda()
     self.lengths2_cuda = lengths2.cuda()
     print("{}: #points: {}".format(self.fname, num_points))
-    self.grid = None
 
   def frnn_grid(self): 
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
     start.record()
-    idxs_cuda, dists_cuda, nn, grid = frnn.frnn_grid_points(
+    idxs_cuda, dists_cuda, nn, grid, \
+      setup_time, insert_points_time, prefix_sum_time, counting_sort_time, find_nbrs_time  = frnn.frnn_grid_points_with_timing(
       self.pc1_cuda,
       self.pc2_cuda,
       self.lengths1_cuda,
       self.lengths2_cuda,
       K=self.K,
       r=self.r,
-      return_grid=True
-    )
-    if self.grid is None:
-      self.grid = grid
-    end.record()
-    torch.cuda.synchronize()
-    grid_time = start.elapsed_time(end)
-    return grid_time
-
-  def frnn_grid_reuse(self):
-    start = torch.cuda.Event(enable_timing=True)
-    end = torch.cuda.Event(enable_timing=True)
-    start.record()
-    idxs_cuda_2, dists_cuda_2, nn, _ = frnn.frnn_grid_points(
-      self.pc1_cuda,
-      self.pc2_cuda,
-      self.lengths1_cuda,
-      self.lengths2_cuda,
-      self.grid,
-      K = self.K,
-      r = self.r
     )
     end.record()
     torch.cuda.synchronize()
-    grid_search_time = start.elapsed_time(end)
-    return grid_search_time
-
-  def knn(self):
-    start = torch.cuda.Event(enable_timing=True)
-    end = torch.cuda.Event(enable_timing=True)
-    start.record()
-    knn_results = knn_points(
-      self.pc1_cuda, 
-      self.pc2_cuda, 
-      self.lengths1_cuda,
-      self.lengths2_cuda,
-      self.K
-    )
-    end.record()
-    torch.cuda.synchronize()
-    knn_time = start.elapsed_time(end)
-    return knn_time
-
-  def frnn_bf(self):
-    start = torch.cuda.Event(enable_timing=True)
-    end = torch.cuda.Event(enable_timing=True)
-    start.record()
-    idxs_cuda_bf, dists_cuda_bf = frnn._C.frnn_bf_cuda(
-      self.pc1_cuda,
-      self.pc2_cuda,
-      self.lengths1_cuda,
-      self.lengths2_cuda,
-      self.K,
-      self.r
-    )
-    end.record()
-    torch.cuda.synchronize()
-    bf_time = start.elapsed_time(end)
-    return bf_time
+    total_time = start.elapsed_time(end)
+    return total_time, setup_time, insert_points_time, prefix_sum_time, counting_sort_time, find_nbrs_time 
 
   def compare(self, num_exp=10):
     if self.num_points > 1000000:
       print("\tnumber of points for exceed 1 million; skip")
       return
-    knn_time = 0
-    frnn_bf_time = 0
-    frnn_grid_time = 0
-    frnn_grid_search_time = 0
 
+    total = 0
+    setup = 0
+    insert_points = 0
+    prefix_sum = 0
+    counting_sort = 0
+    find_nbrs = 0
     for i in range(num_exp):
-      knn_time += self.knn()
-      frnn_bf_time += self.frnn_bf()
-      frnn_grid_time += self.frnn_grid()
-      frnn_grid_search_time += self.frnn_grid_reuse()
+      total_time, setup_time, insert_points_time, prefix_sum_time, counting_sort_time, find_nbrs_time = self.frnn_grid()
+      total += total_time
+      setup += setup_time
+      insert_points += insert_points_time
+      prefix_sum += prefix_sum_time
+      counting_sort += counting_sort_time
+      find_nbrs += find_nbrs_time
       
-    knn_time /= num_exp
-    frnn_bf_time /= num_exp
-    frnn_grid_time /= num_exp
-    frnn_grid_search_time /= num_exp
-    print("\tknn time: {:.2f}; bf time: {:.2f}; grid time: {:.2f}; grid search time: {:.2f}".format(knn_time, frnn_bf_time, frnn_grid_time, frnn_grid_search_time))
+    print("\ttotal time: {:.2f}; \n\tsetup time: {:.2f}; \n\tinsert_points time: {:.2f}; \n\tprefix_sum time: {:.2f}; \n\tcounting_sort time: {:.2f}; \n\tfind_nbrs time: {:.2f}".format(total, setup, insert_points, prefix_sum, counting_sort, find_nbrs))
+    return
 
 # def TimeFRNN(fname, num_pcs=1, K=5, r=0.1):
 # 
