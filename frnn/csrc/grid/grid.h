@@ -13,6 +13,7 @@
 
 #define MAX_RES 100
 // now use at::Tensor to store grid params
+// and we setup grid params in python
 // this struct and corresponding CPU function are now for validation only
 struct GridParams {
   float3 grid_size, grid_min, grid_max;
@@ -29,30 +30,7 @@ void SetupGridParams(
     float cell_size,
     GridParams* params);
 
-
-void TestSetupGridParamsCUDA(
-    at::Tensor bboxes,
-    float r);
-/* Now setup grid params in python
-*/
-
-/*
-void InsertPointsCUDA(
-    const at::Tensor points,  
-    const at::Tensor lengths, 
-    at::Tensor grid_cnt,      
-    at::Tensor grid_cell,     
-    at::Tensor grid_idx,      
-    int G,
-    const GridParams* params);
-
-std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
-   const at::Tensor bboxes,  
-   const at::Tensor points,  
-   const at::Tensor lengths,
-   float r);
-*/
-
+// TODO: add docs
 void InsertPointsCUDA(
     const at::Tensor points,    // (N, P, 3)
     const at::Tensor lengths,   // (N,)
@@ -62,13 +40,6 @@ void InsertPointsCUDA(
     at::Tensor grid_idx,        // (N, P)
     int G);
 
-/*
-std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCUDA(
-    const at::Tensor points,  
-    const at::Tensor lengths,
-    const at::Tensor params,
-    int G);
-*/
 void InsertPointsCPU(
     const at::Tensor points, 
     const at::Tensor lengths, 
@@ -79,35 +50,14 @@ void InsertPointsCPU(
     at::Tensor grid_idx,
     GridParams* params);
 
-
 std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCPU(
     const at::Tensor bboxes,  
     const at::Tensor points,  
     const at::Tensor lengths,
     float r);
 
-/*
-std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
-    const at::Tensor points1,
-    const at::Tensor points2,
-    const at::Tensor lengths1,
-    const at::Tensor lengths2,
-    const at::Tensor grid_off,
-    const at::Tensor sorted_point_idx,
-    const GridParams* params,
-    int K,
-    float r);
-  
-std::tuple<at::Tensor, at::Tensor> TestFindNbrsCUDA(
-    const at::Tensor bboxes,  
-    const at::Tensor points1,  
-    const at::Tensor points2,
-    const at::Tensor lengths1,
-    const at::Tensor lengths2,
-    int K,
-    float r);
-*/
 
+// TODO: add docs
 std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     const at::Tensor points1,
     const at::Tensor points2,
@@ -119,7 +69,6 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     int K,
     float r);
  
-
 std::tuple<at::Tensor, at::Tensor> FindNbrsCPU(
     const at::Tensor points1,          // (N, P1, 3)
     const at::Tensor points2,          // (N, P2, 3)
