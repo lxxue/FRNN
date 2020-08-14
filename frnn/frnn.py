@@ -139,10 +139,10 @@ def frnn_grid_points(
     else:
       return idxs, dists, nn, \
         _GRID(
-          sorted_points=sorted_points2, 
-          grid_off=grid_off, 
-          sorted_points_idxs=sorted_points2_idxs, 
-          grid_params=grid_params_cuda)
+          sorted_points=sorted_points2, # (N, P , 3) 
+          grid_off=grid_off,  # (N, G)
+          sorted_points_idxs=sorted_points2_idxs,  # (N, P)
+          grid_params=grid_params_cuda #(N, 8))
   else:
     return idxs, dists, nn, None
 
@@ -187,9 +187,6 @@ def frnn_grid_points_with_timing(
   if grid is None:
     # setup grid params
 
-    start = torch.cuda.Event(enable_timing=True)
-    end = torch.cuda.Event(enable_timing=True)
-    start.record()
 
     N = points1.shape[0]
     grid_params_cuda = torch.zeros((N, GRID_PARAMS_SIZE), dtype=torch.float, device=points1.device)
@@ -197,8 +194,14 @@ def frnn_grid_points_with_timing(
     G = -1
     for i in range(N):
       # 0-2 grid_min; 3 grid_delta; 4-6 grid_res; 7 grid_total
+      start = torch.cuda.Event(enable_timing=True)
+      end = torch.cuda.Event(enable_timing=True)
+      start.record()
       grid_min = points2[i, :lengths2[i]].min(dim=0)[0]
       grid_max = points2[i, :lengths2[i]].max(dim=0)[0]
+      end.record()
+      torch.cuda.synchronize()
+      setup_time = start.elapsed_time(end)
       grid_params_cuda[i, :3] = grid_min
       grid_size = grid_max - grid_min
       cell_size = r
@@ -210,9 +213,6 @@ def frnn_grid_points_with_timing(
       if G < grid_params_cuda[i, 7]:
         G = int(grid_params_cuda[i, 7].item())
 
-    end.record()
-    torch.cuda.synchronize()
-    setup_time = start.elapsed_time(end)
 
     # test setup_grid_params  
     # print("Grid Params:\n", grid_params_cuda)
