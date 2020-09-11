@@ -38,6 +38,7 @@ class ValidateFRNN:
     self.K = K
     self.r = r
     self.num_points = num_points
+    pc1 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
     self.pc1_cuda = pc1.cuda()
     self.pc2_cuda = pc2.cuda()
     lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points
@@ -100,6 +101,7 @@ class ValidateFRNN:
       return
     idxs_bf, dists_bf = self.frnn_bf()
     idxs_grid, dists_grid = self.frnn_grid()
+
 
     diff_keys_percentage = torch.sum(idxs_grid == idxs_bf).type(torch.float).item() / self.K / self.num_points / self.num_pcs
     dists_all_close = torch.allclose(dists_bf, dists_grid)

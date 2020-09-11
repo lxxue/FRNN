@@ -46,7 +46,8 @@ def frnn_grid_points(
   points2 = points2.contiguous()
 
   P1 = points1.shape[1]
-  P2 = points1.shape[1]
+  P2 = points2.shape[1]
+  # print(P1, P2)
 
   if lengths1 is None:
     lengths1 = torch.full((points1.shape[0],), P1, dtype=torch.long, device=points1.device)
@@ -58,6 +59,7 @@ def frnn_grid_points(
     N = points1.shape[0]
     grid_params_cuda = torch.zeros((N, GRID_PARAMS_SIZE), dtype=torch.float, device=points1.device)
 
+    # print("grid params start")
     G = -1
     for i in range(N):
       # 0-2 grid_min; 3 grid_delta; 4-6 grid_res; 7 grid_total
@@ -73,9 +75,12 @@ def frnn_grid_points(
       grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
       if G < grid_params_cuda[i, 7]:
         G = int(grid_params_cuda[i, 7].item())
+        # print(G)
+    # print(grid_params_cuda[0][0])
 
     # test setup_grid_params  
     # print("Grid Params:\n", grid_params_cuda)
+    # print("insert points start")
 
     grid_cnt = torch.zeros((N, G), dtype=torch.int, device=points1.device)
     grid_cell = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
@@ -83,10 +88,16 @@ def frnn_grid_points(
 
     _C.insert_points_cuda(points2, lengths2, grid_params_cuda, grid_cnt, grid_cell, grid_idx, G)
 
+    # print(grid_cnt[0, 0], grid_cell[0, 0], grid_idx[0, 0])
+
     # test insert_points
     # return grid_cnt, grid_cell, grid_idx
 
+    # print(grid_cnt.shape)
+    # print(grid_params_cuda.cpu())
+    # print("prefix sum start")
     grid_off = _C.prefix_sum_cuda(grid_cnt, grid_params_cuda.cpu())
+    # print(grid_off[0, 0])
     # test_prefix_sum
     # return grid_off
     # test_counting_sort (need to output grid_idx for comparison)
@@ -94,6 +105,9 @@ def frnn_grid_points(
 
     sorted_points2 = torch.zeros((N, P2, 3), dtype=torch.float, device=points1.device)
     sorted_points2_idxs = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+
+    # print("counting sort start")
+    # print(points2, lengths2, grid_cell, grid_idx, grid_off, sorted_points2, sorted_points2_idxs)
 
     _C.counting_sort_cuda(
       points2,
@@ -104,7 +118,12 @@ def frnn_grid_points(
       sorted_points2,
       sorted_points2_idxs
     )
+    # print("sorted points ", sorted_points2)
+    # print("sorted points idxs", sorted_points2_idxs)
+    # print(sorted_points2_idxs[0, 0])
+    # print(sorted_points2[0, 0])
 
+    # print("find nbrs start")
     idxs, dists = _C.find_nbrs_cuda(
       points1,
       sorted_points2,
@@ -116,6 +135,8 @@ def frnn_grid_points(
       K,
       r
     )
+    # print(idxs[0])
+    # print(dists[0])
   else:
     idxs, dists = _C.find_nbrs_cuda(
       points1,
@@ -142,7 +163,7 @@ def frnn_grid_points(
           sorted_points=sorted_points2, # (N, P , 3) 
           grid_off=grid_off,  # (N, G)
           sorted_points_idxs=sorted_points2_idxs,  # (N, P)
-          grid_params=grid_params_cuda #(N, 8))
+          grid_params=grid_params_cuda) #(N, 8)
   else:
     return idxs, dists, nn, None
 
@@ -177,7 +198,8 @@ def frnn_grid_points_with_timing(
   points2 = points2.contiguous()
 
   P1 = points1.shape[1]
-  P2 = points1.shape[1]
+  P2 = points2.shape[1]
+  # print(P1, P2)
 
   if lengths1 is None:
     lengths1 = torch.full((points1.shape[0],), P1, dtype=torch.long, device=points1.device)
@@ -212,6 +234,7 @@ def frnn_grid_points_with_timing(
       grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
       if G < grid_params_cuda[i, 7]:
         G = int(grid_params_cuda[i, 7].item())
+        # print(G)
 
 
     # test setup_grid_params  

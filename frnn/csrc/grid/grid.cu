@@ -75,10 +75,12 @@ __global__ void InsertPointsKernel(
   int chunks_to_do = N * chunks_per_cloud;
   for (int chunk=blockIdx.x; chunk < chunks_to_do; chunk += gridDim.x) {
     int n = chunk / chunks_per_cloud;
+    assert(n < N);
     int start_point = blockDim.x * (chunk % chunks_per_cloud);
     int p = start_point + threadIdx.x;
     if (p >= lengths[n])
       continue;
+    assert(p < P);
 
     float grid_min_x = params[n*GRID_PARAMS_SIZE+GRID_MIN_X];
     float grid_min_y = params[n*GRID_PARAMS_SIZE+GRID_MIN_Y];
@@ -93,6 +95,9 @@ __global__ void InsertPointsKernel(
     int gc_z = (int) ((points[(n*P+p)*3+2]-grid_min_z) * grid_delta);
 
     int gs = (gc_x*grid_res_y + gc_y) * grid_res_z + gc_z;
+    if (gs >= G)
+      printf("gs: %d; G: %d;\n", gs, G);
+    assert(gs < G);
     grid_cell[n*P+p] = gs;
     grid_idx[n*P+p] = atomicAdd(&grid_cnt[n*G + gs], 1);
   } 

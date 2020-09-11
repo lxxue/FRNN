@@ -97,6 +97,7 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
   at::CheckedFrom c = "FRNNBruteForceCuda";
   at::checkAllSameGPU(c, {p1_t, p2_t, lengths1_t, lengths2_t});
   at::checkAllSameType(c, {p1_t, p2_t});
+  at::checkAllSameType(c, {lengths1_t, lengths2_t});
 
   // Set the device for the kernel launch based on the device of the input
   at::cuda::CUDAGuard device_guard(p1.device());

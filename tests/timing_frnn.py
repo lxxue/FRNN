@@ -10,18 +10,20 @@ from pytorch_points.utils.pc_utils import read_ply
 import time
 import argparse
 import glob
+import csv
 
 class TimeFRNN:
   def __init__(self, fname, num_pcs=1, K=5, r=0.1):
+    # pc1 = torch.rand((num_pcs, 100000, 3), dtype=torch.float)
     if 'random' in fname:
       # fname format: random_{num_points}
       num_points = int(fname.split('_')[1])
       pc1 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
       pc2 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
-      for i in range(num_pcs):
-        for j in range(3):
-          pc1[i, :, j] *= torch.rand(1)+0.5
-          pc2[i, :, j] *= torch.rand(1)+0.5
+      # for i in range(num_pcs):
+      #   for j in range(3):
+      #     pc1[i, :, j] *= torch.rand(1)+0.5
+      #     pc2[i, :, j] *= torch.rand(1)+0.5
     else:
       pc1 = torch.FloatTensor(read_ply(fname)[None, :, :3])  # no need for normals
       # pc2 = pc1
@@ -29,7 +31,7 @@ class TimeFRNN:
       normalize_pc(pc1)
       normalize_pc(pc2)
       # print("pc1 bbox: ", pc1.min(dim=1)[0], pc1.max(dim=1)[0])
-      num_points = pc1.shape[1]
+      num_points = pc2.shape[1]
       if num_pcs > 1:
         pc1 = pc1.repeat(num_pcs, 1, 1)
         pc2 = pc2.repeat(num_pcs, 1, 1)
@@ -39,6 +41,7 @@ class TimeFRNN:
     self.num_points = num_points
     self.pc1_cuda = pc1.cuda()
     self.pc2_cuda = pc2.cuda()
+    # lengths1 = torch.ones((num_pcs,), dtype=torch.long) * 100000
     lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points
     lengths2 = torch.ones((num_pcs,), dtype=torch.long) * num_points
     self.lengths1_cuda = lengths1.cuda()
@@ -83,8 +86,8 @@ class TimeFRNN:
       counting_sort += counting_sort_time
       find_nbrs += find_nbrs_time
       
-    print("\ttotal time: {:.2f}; \n\tsetup time: {:.2f}; \n\tinsert_points time: {:.2f}; \n\tprefix_sum time: {:.2f}; \n\tcounting_sort time: {:.2f}; \n\tfind_nbrs time: {:.2f}".format(total, setup, insert_points, prefix_sum, counting_sort, find_nbrs))
-    return
+    # print("\ttotal time: {:.2f}; \n\tsetup time: {:.2f}; \n\tinsert_points time: {:.2f}; \n\tprefix_sum time: {:.2f}; \n\tcounting_sort time: {:.2f}; \n\tfind_nbrs time: {:.2f}".format(total, setup, insert_points, prefix_sum, counting_sort, find_nbrs))
+    return [self.fname, self.num_points, total, setup, insert_points, prefix_sum, counting_sort, find_nbrs]
 
 # def TimeFRNN(fname, num_pcs=1, K=5, r=0.1):
 # 
@@ -117,13 +120,17 @@ if __name__ == "__main__":
   fnames = sorted(glob.glob('data/*.ply') + glob.glob('data/*/*.ply'))
   fnames += ['random_10000', 'random_100000', 'random_1000000']
   print(fnames)
-  for fname in fnames:
-    if 'xyz' in fname or 'lucy' in fname:
-      continue
-    timer = TimeFRNN(fname)
-    timer.compare(num_exp=10)
-    # TimeFRNN('data/lucy.ply')
-    # TimeFRNN('data/drill/drill_shaft_vrip.ply')
-    # break
+  with open("tests/timing_frnn_same.csv", 'w') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(['Point cloud', 'Num points', 'total time', 'setup time', 'insert points time', 'prefix sum time', 'counting sort time', 'grid search time'])
+    for fname in fnames:
+      if 'xyz' in fname or 'lucy' in fname:
+        continue
+      timer = TimeFRNN(fname)
+      results = timer.compare(num_exp=10)
+      writer.writerow(results)
+      # TimeFRNN('data/lucy.ply')
+      # TimeFRNN('data/drill/drill_shaft_vrip.ply')
+      # break
   
   

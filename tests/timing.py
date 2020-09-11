@@ -10,26 +10,27 @@ from pytorch_points.utils.pc_utils import read_ply
 import time
 import argparse
 import glob
+import csv
 
 class TimeFRNN:
   def __init__(self, fname, num_pcs=1, K=5, r=0.1):
+    pc1 = torch.rand((num_pcs, 100000, 3), dtype=torch.float)
     if 'random' in fname:
       # fname format: random_{num_points}
       num_points = int(fname.split('_')[1])
-      pc1 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
       pc2 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
-      for i in range(num_pcs):
-        for j in range(3):
-          pc1[i, :, j] *= torch.rand(1)+0.5
-          pc2[i, :, j] *= torch.rand(1)+0.5
+      # for i in range(num_pcs):
+      #   for j in range(3):
+      #     pc1[i, :, j] *= torch.rand(1)+0.5
+      #     pc2[i, :, j] *= torch.rand(1)+0.5
     else:
-      pc1 = torch.FloatTensor(read_ply(fname)[None, :, :3])  # no need for normals
+      # pc1 = torch.FloatTensor(read_ply(fname)[None, :, :3])  # no need for normals
       # pc2 = pc1
       pc2 = torch.FloatTensor(read_ply(fname)[None, :, :3])  # no need for normals
-      normalize_pc(pc1)
+      # normalize_pc(pc1)
       normalize_pc(pc2)
       # print("pc1 bbox: ", pc1.min(dim=1)[0], pc1.max(dim=1)[0])
-      num_points = pc1.shape[1]
+      num_points = pc2.shape[1]
       if num_pcs > 1:
         pc1 = pc1.repeat(num_pcs, 1, 1)
         pc2 = pc2.repeat(num_pcs, 1, 1)
@@ -39,7 +40,7 @@ class TimeFRNN:
     self.num_points = num_points
     self.pc1_cuda = pc1.cuda()
     self.pc2_cuda = pc2.cuda()
-    lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points
+    lengths1 = torch.ones((num_pcs,), dtype=torch.long) * 100000
     lengths2 = torch.ones((num_pcs,), dtype=torch.long) * num_points
     self.lengths1_cuda = lengths1.cuda()
     self.lengths2_cuda = lengths2.cuda()
@@ -136,7 +137,8 @@ class TimeFRNN:
     frnn_bf_time /= num_exp
     frnn_grid_time /= num_exp
     frnn_grid_search_time /= num_exp
-    print("\tknn time: {:.2f}; bf time: {:.2f}; grid time: {:.2f}; grid search time: {:.2f}".format(knn_time, frnn_bf_time, frnn_grid_time, frnn_grid_search_time))
+    # print("\tknn time: {:.2f}; bf time: {:.2f}; grid time: {:.2f}; grid search time: {:.2f}".format(knn_time, frnn_bf_time, frnn_grid_time, frnn_grid_search_time))
+    return [self.fname, self.num_points, "{:.2f}".format(knn_time), "{:.2f}".format(frnn_bf_time), "{:.2f}".format(frnn_grid_time), "{:.2f}".format(frnn_grid_search_time)]
 
 # def TimeFRNN(fname, num_pcs=1, K=5, r=0.1):
 # 
@@ -157,25 +159,17 @@ def normalize_pc(pc):
   return
 
 if __name__ == "__main__":
-  # parser = argparse.ArgumentParser()
-  # parser.add_argument("--pc", type=str, default=None)
-  # args = parser.parse_args()
-  # TimeFindNbrs(1, 10000, args.pc)
-  # TimeFindNbrs(1, 100000, args.pc)
-  # TimeFindNbrs(1, 1000000, args.pc)
-  # TimeFindNbrs(10, 10000, args.pc)
-  # TimeFindNbrs(10, 100000, args.pc)
-  # TimeFindNbrs(10, 1000000, args.pc)
   fnames = sorted(glob.glob('data/*.ply') + glob.glob('data/*/*.ply'))
   fnames += ['random_10000', 'random_100000', 'random_1000000']
   print(fnames)
-  for fname in fnames:
-    if 'xyz' in fname or 'lucy' in fname:
-      continue
-    timer = TimeFRNN(fname)
-    timer.compare(num_exp=10)
-    # TimeFRNN('data/lucy.ply')
-    # TimeFRNN('data/drill/drill_shaft_vrip.ply')
-    # break
+  with open("tests/timing.csv", 'w') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(['Point cloud', 'Num points', 'knn time', 'frnn bf time', 'frnn grid time', 'frnn grid search time'])
+    for fname in fnames:
+      if 'xyz' in fname or 'lucy' in fname:
+        continue
+      timer = TimeFRNN(fname)
+      results = timer.compare(num_exp=10)
+      writer.writerow(results)
   
   

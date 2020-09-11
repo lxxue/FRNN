@@ -9,9 +9,10 @@ class Test(unittest.TestCase):
   r2 = r * r
   num_pcs = 5
   max_num_points = 10000
+  max_num_points_2 = 100000
 
   pc1 = torch.rand((num_pcs, max_num_points, 3), dtype=torch.float)
-  pc2 = torch.rand((num_pcs, max_num_points, 3), dtype=torch.float)
+  pc2 = torch.rand((num_pcs, max_num_points_2, 3), dtype=torch.float)
   for i in range(num_pcs):
     for j in range(3):
       pc1[i, :, j] *= torch.rand(1)+0.5
@@ -19,7 +20,7 @@ class Test(unittest.TestCase):
   pc1_cuda = pc1.cuda()
   pc2_cuda = pc2.cuda()
   lengths1 = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.long)
-  lengths2 = torch.randint(low=K, high=max_num_points, size=(num_pcs,), dtype=torch.long)
+  lengths2 = torch.randint(low=K, high=max_num_points_2, size=(num_pcs,), dtype=torch.long)
   lengths1_cuda = lengths1.cuda()
   lengths2_cuda = lengths2.cuda()
 
@@ -38,7 +39,7 @@ class Test(unittest.TestCase):
       self.r
     )
 
-    idxs_cuda, dists_cuda = frnn.frnn_grid_points(
+    idxs_cuda, dists_cuda, _, _ = frnn.frnn_grid_points(
       self.pc1_cuda,
       self.pc2_cuda,
       self.lengths1_cuda,
@@ -64,6 +65,7 @@ class Test(unittest.TestCase):
       self.K,
       self.r
     )
+
     print("cpu vs cuda idx bf: ", torch.allclose(idxs_cpu_bf, idxs_cuda_bf.cpu()))
     print("cpu vs cuda dists bf: ", torch.allclose(dists_cpu_bf, dists_cuda_bf.cpu()))
 

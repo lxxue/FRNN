@@ -278,6 +278,7 @@ at::Tensor PrefixSumCUDA(
   for (int n = 0; n < N; ++n) {
     // std::cout << "prefixsum iter " << n << std::endl;
     int num_grids = params_a[n][GRID_TOTAL];
+    // std::cout << num_grids << std::endl;
 
     preallocBlockSumsInt(num_grids);
     prescanArrayRecursiveInt(
