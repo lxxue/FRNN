@@ -81,18 +81,24 @@ __global__ void InsertPointsKernel(
     if (p >= lengths[n])
       continue;
     assert(p < P);
+    // if (p >= P)
+    //   printf("p: %d; P: %d\n", p, P);
 
     float grid_min_x = params[n*GRID_PARAMS_SIZE+GRID_MIN_X];
     float grid_min_y = params[n*GRID_PARAMS_SIZE+GRID_MIN_Y];
     float grid_min_z = params[n*GRID_PARAMS_SIZE+GRID_MIN_Z];
     float grid_delta = params[n*GRID_PARAMS_SIZE+GRID_DELTA];
-    // int grid_res_x = params[n*GRID_PARAMS_SIZE+GRID_RES_X];
+    int grid_res_x = params[n*GRID_PARAMS_SIZE+GRID_RES_X];
     int grid_res_y = params[n*GRID_PARAMS_SIZE+GRID_RES_Y];
     int grid_res_z = params[n*GRID_PARAMS_SIZE+GRID_RES_Z];
 
     int gc_x = (int) ((points[(n*P+p)*3+0]-grid_min_x) * grid_delta);
     int gc_y = (int) ((points[(n*P+p)*3+1]-grid_min_y) * grid_delta);
     int gc_z = (int) ((points[(n*P+p)*3+2]-grid_min_z) * grid_delta);
+
+    gc_x = std::max(std::min(gc_x, grid_res_x-1), 0);
+    gc_y = std::max(std::min(gc_y, grid_res_y-1), 0);
+    gc_z = std::max(std::min(gc_z, grid_res_z-1), 0);
 
     int gs = (gc_x*grid_res_y + gc_y) * grid_res_z + gc_z;
     if (gs >= G)
@@ -151,7 +157,8 @@ __global__ void FindNbrsKernel(
     const long* __restrict__ lengths1,        
     const long* __restrict__ lengths2,
     const int* __restrict__ grid_off,
-    const int* __restrict__ sorted_point_idx,
+    const int* __restrict__ sorted_points1_idxs,
+    const int* __restrict__ sorted_points2_idxs,
     const float* __restrict__ params,
     float* __restrict__ dists,               
     long* __restrict__ idxs,                  
@@ -179,7 +186,6 @@ __global__ void FindNbrsKernel(
     cur_point.y = points1[n*P1*3 + p1*3 + 1];
     cur_point.z = points1[n*P1*3 + p1*3 + 2];
 
-
     float grid_min_x = params[n*GRID_PARAMS_SIZE+GRID_MIN_X];
     float grid_min_y = params[n*GRID_PARAMS_SIZE+GRID_MIN_Y];
     float grid_min_z = params[n*GRID_PARAMS_SIZE+GRID_MIN_Z];
@@ -189,9 +195,6 @@ __global__ void FindNbrsKernel(
     int grid_res_z = params[n*GRID_PARAMS_SIZE+GRID_RES_Z];
     int grid_total = params[n*GRID_PARAMS_SIZE+GRID_TOTAL];
 
-    // gc.x = (int) ((cur_point.x-grid_min.x) * grid_delta);
-    // gc.y = (int) ((cur_point.y-grid_min.y) * grid_delta);
-    // gc.z = (int) ((cur_point.z-grid_min.z) * grid_delta);
     int min_gc_x = (int) std::floor((cur_point.x-grid_min_x-r) * grid_delta);
     int min_gc_y = (int) std::floor((cur_point.y-grid_min_y-r) * grid_delta);
     int min_gc_z = (int) std::floor((cur_point.z-grid_min_z-r) * grid_delta);
@@ -217,7 +220,7 @@ __global__ void FindNbrsKernel(
             diff.z = points2[n*P2*3 + p2*3 + 2] - cur_point.z;
             sqdist = diff.x*diff.x + diff.y*diff.y + diff.z*diff.z;
             if (sqdist <= r2) {
-              mink.add(sqdist, sorted_point_idx[n*P2+p2]);
+              mink.add(sqdist, sorted_points2_idxs[n*P2+p2]);
             }
           }
         }
@@ -225,9 +228,10 @@ __global__ void FindNbrsKernel(
     }
     // TODO: add return_sort here
     mink.sort();
+    int old_p1 = sorted_points1_idxs[p1];
     for (int k=0; k < mink.size(); ++k) {
-      idxs[n*P1*K + p1*K + k] = min_idxs[k];
-      dists[n*P1*K + p1*K + k] = min_dists[k];
+      idxs[n*P1*K + old_p1*K + k] = min_idxs[k];
+      dists[n*P1*K + old_p1*K + k] = min_dists[k];
     }
   }
 }
@@ -241,8 +245,9 @@ struct FindNbrsKernelFunctor {
       const float* __restrict__ points2,          // (N, P2, 3)
       const long* __restrict__ lengths1,          // (N,)
       const long* __restrict__ lengths2,          // (N,)
-      const int* __restrict__ grid_off,           // (N, G)
-      const int* __restrict__ sorted_point_idx,   // (N, P)
+      const int* __restrict__ pc2_grid_off,           // (N, G)
+      const int* __restrict__ sorted_points1_idxs,   // (N, P)
+      const int* __restrict__ sorted_points2_idxs,   // (N, P)
       const float* __restrict__ params,           // (N,)
       float* __restrict__ dists,                  // (N, P1, K)
       long* __restrict__ idxs,                    // (N, P1, K)
@@ -253,7 +258,8 @@ struct FindNbrsKernelFunctor {
       float r) {
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     FindNbrsKernel<K><<<blocks, threads, 0, stream>>>(
-      points1, points2, lengths1, lengths2, grid_off, sorted_point_idx, params,
+      points1, points2, lengths1, lengths2, pc2_grid_off, 
+      sorted_points1_idxs, sorted_points2_idxs, params,
       dists, idxs, N, P1, P2, G, r);
   }
 };
@@ -267,8 +273,9 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     const at::Tensor points2,
     const at::Tensor lengths1,
     const at::Tensor lengths2,
-    const at::Tensor grid_off,
-    const at::Tensor sorted_point_idx,
+    const at::Tensor pc2_grid_off,
+    const at::Tensor sorted_points1_idxs,
+    const at::Tensor sorted_points2_idxs,
     const at::Tensor params,
     int K,
     float r) {
@@ -276,22 +283,23 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   at::TensorArg points2_t{points2, "points2", 2};
   at::TensorArg lengths1_t{lengths1, "lengths1", 3};
   at::TensorArg lengths2_t{lengths2, "lengths2", 4};
-  at::TensorArg grid_off_t{grid_off, "grid_off", 5};
-  at::TensorArg sorted_point_idx_t{sorted_point_idx, "sorted_point_idx", 6};
-  at::TensorArg params_t{params, "params", 7};
+  at::TensorArg pc2_grid_off_t{pc2_grid_off, "pc2_grid_off", 5};
+  at::TensorArg sorted_points1_idxs_t{sorted_points1_idxs, "sorted_points1_idxs", 6};
+  at::TensorArg sorted_points2_idxs_t{sorted_points2_idxs, "sorted_points2_idxs", 7};
+  at::TensorArg params_t{params, "params", 8};
 
   at::CheckedFrom c = "FindNbrsCUDA";
-  at::checkAllSameGPU(c, {points1_t, points2_t, lengths1_t, lengths2_t, grid_off_t, sorted_point_idx_t, params_t});
+  at::checkAllSameGPU(c, {points1_t, points2_t, lengths1_t, lengths2_t, pc2_grid_off_t, sorted_points1_idxs_t, sorted_points2_idxs_t, params_t});
   at::checkAllSameType(c, {points1_t, points2_t});
   at::checkAllSameType(c, {lengths1_t, lengths2_t});
-  at::checkAllSameType(c, {grid_off_t, sorted_point_idx_t});
+  at::checkAllSameType(c, {pc2_grid_off_t, sorted_points1_idxs_t, sorted_points2_idxs_t});
   at::cuda::CUDAGuard device_guard(points1.device());
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
   int N = points1.size(0);
   int P1 = points1.size(1);
   int P2 = points2.size(1);
-  int G = grid_off.size(1);
+  int G = pc2_grid_off.size(1);
   
   auto idxs = at::full({N, P1, K}, -1, lengths1.options());
   auto dists = at::full({N, P1, K}, -1, points1.options());
@@ -307,8 +315,9 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     points2.contiguous().data_ptr<float>(),
     lengths1.contiguous().data_ptr<long>(),
     lengths2.contiguous().data_ptr<long>(),
-    grid_off.contiguous().data_ptr<int>(),
-    sorted_point_idx.contiguous().data_ptr<int>(),
+    pc2_grid_off.contiguous().data_ptr<int>(),
+    sorted_points1_idxs.contiguous().data_ptr<int>(),
+    sorted_points2_idxs.contiguous().data_ptr<int>(),
     params.contiguous().data_ptr<float>(),
     dists.data_ptr<float>(),
     idxs.data_ptr<long>(),

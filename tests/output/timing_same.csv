@@ -1,0 +1,19 @@
+Point cloud,Num points,knn time,frnn bf time,frnn grid time,frnn grid search time
+Armadillo.ply,172974,166.03,113.15,13.07,11.68
+bun_zipper.ply,35947,11.40,6.11,1.56,0.75
+bun_zipper_res2.ply,8171,1.46,0.86,0.98,0.20
+bun_zipper_res3.ply,1889,0.42,0.24,1.02,0.11
+bun_zipper_res4.ply,453,0.21,0.12,0.99,0.08
+dragon_vrip.ply,437645,1056.29,725.33,90.10,90.38
+dragon_vrip_res2.ply,100250,62.57,39.74,6.14,5.70
+dragon_vrip_res3.ply,22998,4.84,3.01,1.36,0.74
+dragon_vrip_res4.ply,5205,1.06,0.58,0.69,0.19
+drill_shaft_vrip.ply,1961,0.49,0.27,0.72,0.16
+drill_shaft_zip.ply,881,0.27,0.17,0.63,0.14
+happy_vrip.ply,543652,1698.16,1226.68,183.33,179.90
+happy_vrip_res2.ply,144647,130.59,76.13,14.29,13.04
+happy_vrip_res3.ply,32328,10.62,5.42,2.08,1.54
+happy_vrip_res4.ply,7108,1.36,0.78,0.85,0.28
+random_10000,10000,1.78,1.04,0.95,0.11
+random_100000,100000,59.36,37.96,1.90,1.04
+random_1000000,1000000,5745.18,3923.61,117.02,114.80
