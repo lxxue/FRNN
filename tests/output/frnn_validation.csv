@@ -1,0 +1,19 @@
+Point cloud,Num points,Different key percentage,Dists all close
+Armadillo.ply,172974,1.0000,True
+bun_zipper.ply,35947,1.0000,True
+bun_zipper_res2.ply,8171,1.0000,True
+bun_zipper_res3.ply,1889,1.0000,True
+bun_zipper_res4.ply,453,1.0000,True
+dragon_vrip.ply,437645,0.9993,True
+dragon_vrip_res2.ply,100250,1.0000,True
+dragon_vrip_res3.ply,22998,1.0000,True
+dragon_vrip_res4.ply,5205,1.0000,True
+drill_shaft_vrip.ply,1961,1.0000,True
+drill_shaft_zip.ply,881,1.0000,True
+happy_vrip.ply,543652,0.9999,True
+happy_vrip_res2.ply,144647,1.0000,True
+happy_vrip_res3.ply,32328,1.0000,True
+happy_vrip_res4.ply,7108,1.0000,True
+random_10000,10000,1.0000,True
+random_100000,100000,1.0000,True
+random_1000000,1000000,1.0000,True

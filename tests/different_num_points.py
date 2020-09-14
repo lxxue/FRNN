@@ -106,7 +106,7 @@ class Test(unittest.TestCase):
   #   self._find_nbrs()
 
   def test_together(self):
-    idxs, dists, _, grid = frnn.frnn_grid_points(self.pc1_cuda, self.pc2_cuda, self.lengths1_cuda, self.lengths2_cuda, None, self.K, self.r, return_grid=True)
+    idxs, dists, _, grid = frnn.frnn_grid_points(self.pc1_cuda, self.pc2_cuda, self.lengths1_cuda, self.lengths2_cuda, self.K, self.r, None, return_grid=True)
     # print(idxs)
     # print(dists)
     # print(grid[0])

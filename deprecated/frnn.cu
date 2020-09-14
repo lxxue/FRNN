@@ -9,7 +9,7 @@
 #include "utils/mink.cuh"
 
 template <typename scalar_t, int64_t D, int64_t K>
-__global__ void FRNNBruteForceCudaKernel(
+__global__ void FRNNBruteForceCUDAKernel(
     const scalar_t* __restrict__ points1,
     const scalar_t* __restrict__ points2,
     const int64_t* __restrict__ lengths1,
@@ -73,7 +73,7 @@ struct FRNNBruteForceFunctor {
       const int64_t P2,
       const float r2) {
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
-    FRNNBruteForceCudaKernel<scalar_t, D, K><<<blocks, threads, 0, stream>>>(
+    FRNNBruteForceCUDAKernel<scalar_t, D, K><<<blocks, threads, 0, stream>>>(
         points1, points2, lengths1, lengths2, dists, idxs, N, P1, P2, r2);
   }
 };
@@ -83,7 +83,7 @@ constexpr int V2_MAX_D = 8;
 constexpr int V2_MIN_K = 1;
 constexpr int V2_MAX_K = 32;
 
-std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCuda(
+std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
     const at::Tensor& p1,
     const at::Tensor& p2,
     const at::Tensor& lengths1,
@@ -93,7 +93,7 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCuda(
   // Check inputs are on the same device
   at::TensorArg p1_t{p1, "p1", 1}, p2_t{p2, "p2", 2},
       lengths1_t{lengths1, "lengths1", 3}, lengths2_t{lengths2, "lengths2", 4};
-  at::CheckedFrom c = "FRNNBruteForceCuda";
+  at::CheckedFrom c = "FRNNBruteForceCUDA";
   at::checkAllSameGPU(c, {p1_t, p2_t, lengths1_t, lengths2_t});
   at::checkAllSameType(c, {p1_t, p2_t});
 

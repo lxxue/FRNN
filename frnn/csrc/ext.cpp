@@ -3,6 +3,8 @@
 #include "grid/prefix_sum.h"
 #include "grid/counting_sort.h"
 #include "bruteforce/bruteforce.h"
+#include "backward/backward.h"
+
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("setup_grid_params", &SetupGridParams);
@@ -23,4 +25,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   
   m.def("frnn_bf_cuda", &FRNNBruteForceCUDA);
   m.def("frnn_bf_cpu", &FRNNBruteForceCPU);
+
+  m.def("frnn_backward_cuda", &FRNNBackwardCUDA);
 }

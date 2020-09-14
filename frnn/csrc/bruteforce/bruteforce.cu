@@ -94,7 +94,7 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
   // Check inputs are on the same device
   at::TensorArg p1_t{p1, "p1", 1}, p2_t{p2, "p2", 2},
       lengths1_t{lengths1, "lengths1", 3}, lengths2_t{lengths2, "lengths2", 4};
-  at::CheckedFrom c = "FRNNBruteForceCuda";
+  at::CheckedFrom c = "FRNNBruteForceCUDA";
   at::checkAllSameGPU(c, {p1_t, p2_t, lengths1_t, lengths2_t});
   at::checkAllSameType(c, {p1_t, p2_t});
   at::checkAllSameType(c, {lengths1_t, lengths2_t});

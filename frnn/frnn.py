@@ -16,17 +16,59 @@ _GRID = namedtuple("GRID", "sorted_points grid_off sorted_points_idxs, grid_para
 GRID_PARAMS_SIZE = 8
 MAX_RES = 100
 
+class _frnn(Function):
+  """
+  Torch autograd Function wrapper for FRNN CUDA implementation
+  """
+
+  @staticmethod
+  def forward(
+      ctx, 
+      points1, 
+      points2, 
+      lengths1, 
+      lengths2, 
+      K: int,
+      r: float,
+      grid: Union[_GRID, None] = None,
+      return_nn: bool = False,
+      return_sorted: bool = True,
+      return_grid: bool = False
+  ):
+    """
+    TODO: add docs
+    """
+    idxs, dists, nn, grid = frnn_grid_points(points1, points2, lengths1, lengths2, K, r, grid, return_nn, return_sorted, return_grid)
+
+    # TODO: return sorted here
+
+    ctx.save_for_backward(points1, points2, lengths1, lengths2, idxs)
+    ctx.mark_non_differentiable(idxs)
+
+    return dists, idxs
+
+  @staticmethod
+  @once_differentiable
+  def backward(ctx, grad_dists, grad_idxs):
+    points1, points2, lengths1, lengths2, idxs = ctx.saved_tensors
+    # TODO: type check here
+    grad_points1, grad_points2 = _C.frnn_backward_cuda(
+      points1, points2, lengths1, lengths2, idxs, grad_dists
+    )
+    return grad_points1, grad_points2, None, None, None, None, None, None, None, None
+
+
 def frnn_grid_points(
   points1: torch.Tensor,
   points2: torch.Tensor,
   lengths1: Union[torch.Tensor, None] = None,
   lengths2: Union[torch.Tensor, None] = None,
-  grid: Union[_GRID, None] = None,
   # sorted_points2: Union[torch.Tensor, None] = None,
   # sorted_points2_idxs: Union[torch.Tensor, None] = None,
   # grid_off: Union[torch.Tensor, None] = None,
-  K: int = -1,
-  r: float = -1,
+  K: int,
+  r: float,
+  grid: Union[_GRID, None] = None,
   return_nn: bool = False,
   return_sorted: bool = True,     # for now we always sort the neighbors by dist
   return_grid: bool = False,      # for reusing grid structure

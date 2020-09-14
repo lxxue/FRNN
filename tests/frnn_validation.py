@@ -12,7 +12,7 @@ import glob
 import csv
 
 class ValidateFRNN:
-  def __init__(self, fname, num_pcs=1, K=5, r=0.1):
+  def __init__(self, fname, num_pcs=1, K=5, r=0.1, same=False):
     if 'random' in fname:
       # fname format: random_{num_points}
       num_points = int(fname.split('_')[1])
@@ -29,19 +29,25 @@ class ValidateFRNN:
       normalize_pc(pc1)
       normalize_pc(pc2)
       # print("pc1 bbox: ", pc1.min(dim=1)[0], pc1.max(dim=1)[0])
-      num_points = pc1.shape[1]
+      num_points = pc2.shape[1]
       if num_pcs > 1:
         pc1 = pc1.repeat(num_pcs, 1, 1)
         pc2 = pc2.repeat(num_pcs, 1, 1)
+
+    if not same:
+      pc1 = torch.rand((num_pcs, 100000, 3), dtype=torch.float)
     self.num_pcs = num_pcs
     self.fname = fname.split('/')[-1]
     self.K = K
     self.r = r
     self.num_points = num_points
-    pc1 = torch.rand((num_pcs, num_points, 3), dtype=torch.float)
+    self.same = same
     self.pc1_cuda = pc1.cuda()
     self.pc2_cuda = pc2.cuda()
-    lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points
+    if same:
+      lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points
+    else:
+      lengths1 = torch.ones((num_pcs,), dtype=torch.long) * 100000
     lengths2 = torch.ones((num_pcs,), dtype=torch.long) * num_points
     self.lengths1_cuda = lengths1.cuda()
     self.lengths2_cuda = lengths2.cuda()
@@ -68,9 +74,9 @@ class ValidateFRNN:
       self.pc2_cuda,
       self.lengths1_cuda,
       self.lengths2_cuda,
-      self.grid,
-      K = self.K,
-      r = self.r
+      self.K,
+      self.r,
+      self.grid
     )
     return idxs_cuda_2, dists_cuda_2
 
@@ -103,7 +109,10 @@ class ValidateFRNN:
     idxs_grid, dists_grid = self.frnn_grid()
 
 
-    diff_keys_percentage = torch.sum(idxs_grid == idxs_bf).type(torch.float).item() / self.K / self.num_points / self.num_pcs
+    if self.same:
+      diff_keys_percentage = torch.sum(idxs_grid == idxs_bf).type(torch.float).item() / self.K / self.num_points / self.num_pcs
+    else:
+      diff_keys_percentage = torch.sum(idxs_grid == idxs_bf).type(torch.float).item() / self.K / 100000 / self.num_pcs
     dists_all_close = torch.allclose(dists_bf, dists_grid)
     return [self.fname, self.num_points, "{:.4f}".format(diff_keys_percentage), dists_all_close]
       
@@ -122,12 +131,22 @@ if __name__ == "__main__":
   fnames = sorted(glob.glob('data/*.ply') + glob.glob('data/*/*.ply'))
   fnames += ['random_10000', 'random_100000', 'random_1000000']
   print(fnames)
-  with open("frnn_validation.csv", 'w') as csvfile:
+  with open("tests/output/frnn_validation.csv", 'w') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(['Point cloud', 'Num points', 'Different key percentage', 'Dists all close'])
     for fname in fnames:
       if 'xyz' in fname or 'lucy' in fname:
         continue
-      validator = ValidateFRNN(fname)
+      validator = ValidateFRNN(fname, same=False)
+      results = validator.compare()
+      writer.writerow(results)
+
+  with open("tests/output/frnn_validation_same.csv", 'w') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(['Point cloud', 'Num points', 'Different key percentage', 'Dists all close'])
+    for fname in fnames:
+      if 'xyz' in fname or 'lucy' in fname:
+        continue
+      validator = ValidateFRNN(fname, same=True)
       results = validator.compare()
       writer.writerow(results)

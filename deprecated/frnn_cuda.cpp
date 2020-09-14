@@ -2,7 +2,7 @@
 #include "utils/check.h"
 #include "grid.h"
 
-std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCuda(
+std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
     const at::Tensor& p1,
     const at::Tensor& p2,
     const at::Tensor& lengths1,
@@ -23,7 +23,7 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCuda(
     CHECK_CONTIGUOUS_CUDA(lengths1);
     CHECK_CONTIGUOUS_CUDA(lengths2);
 
-    return FRNNBruteForceCuda(p1, p2, lengths1, lengths2, K, rsq);
+    return FRNNBruteForceCUDA(p1, p2, lengths1, lengths2, K, rsq);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
