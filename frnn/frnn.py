@@ -27,13 +27,18 @@ class _frnn_grid_points(Function):
       lengths2, 
       K: int,
       r: float,
-      grid: Union[_GRID, None] = None,
+      # grid: Union[_GRID, None] = None, # autograd.function only supports tensor as input/output
+      sorted_points2 = None,
+      grid_off = None,
+      sorted_points2_idxs = None,
+      grid_params_cuda = None,
       return_sorted: bool = True,
   ):
     """
     TODO: add docs
     """
-    if grid is None:
+    use_cached_grid = sorted_points2 is not None and grid_off is not None and sorted_points2_idxs is not None and grid_params_cuda is not None
+    if not use_cached_grid:
       # setup grid params
       N = points1.shape[0]
       grid_params_cuda = torch.zeros((N, GRID_PARAMS_SIZE), dtype=torch.float, device=points1.device)
@@ -54,6 +59,7 @@ class _frnn_grid_points(Function):
           G = int(grid_params_cuda[i, 7].item())
 
       # insert points into the grid
+      P2 = points2.shape[1]
       grid_cnt = torch.zeros((N, G), dtype=torch.int, device=points1.device)
       grid_cell = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
       grid_idx = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
@@ -76,37 +82,49 @@ class _frnn_grid_points(Function):
       )
 
       # cache the grid structure for reusing 
-      grid = _GRID(
-          sorted_points=sorted_points2, # (N, P , 3) 
-          grid_off=grid_off,  # (N, G)
-          sorted_points_idxs=sorted_points2_idxs,  # (N, P)
-          grid_params=grid_params_cuda) #(N, 8)
+      # grid = _GRID(
+      #     sorted_points=sorted_points2, # (N, P , 3) 
+      #     grid_off=grid_off,  # (N, G)
+      #     sorted_points_idxs=sorted_points2_idxs,  # (N, P)
+      #     grid_params=grid_params_cuda) #(N, 8)
 
-      # perform search on the grid
-      idxs, dists = _C.find_nbrs_cuda(
-        points1,
-        sorted_points2,
-        lengths1,
-        lengths2,
-        grid_off,
-        sorted_points2_idxs,
-        grid_params_cuda,
-        K,
-        r
-      )
-    else:
-      # use cached grid to search 
-      idxs, dists = _C.find_nbrs_cuda(
-        points1,
-        grid[0],        # sorted_points2
-        lengths1,
-        lengths2,
-        grid[1],        # grid_off
-        grid[2],        # sorted_points2_idxs
-        grid[3],        # grid_params_cuda
-        K,
-        r
-      )
+    #  # perform search on the grid
+    #  idxs, dists = _C.find_nbrs_cuda(
+    #    points1,
+    #    sorted_points2,
+    #    lengths1,
+    #    lengths2,
+    #    grid_off,
+    #    sorted_points2_idxs,
+    #    grid_params_cuda,
+    #    K,
+    #    r
+    #  )
+    #else:
+    #  # use cached grid to search 
+    #  idxs, dists = _C.find_nbrs_cuda(
+    #    points1,
+    #    sorted_points2,
+    #    lengths1,
+    #    lengths2,
+    #    grid_off,
+    #    sorted_points2_idxs,
+    #    grid_params_cuda,
+    #    K,
+    #    r
+    #  )
+    # perform search on the grid
+    idxs, dists = _C.find_nbrs_cuda(
+      points1,
+      sorted_points2,
+      lengths1,
+      lengths2,
+      grid_off,
+      sorted_points2_idxs,
+      grid_params_cuda,
+      K,
+      r
+    )
     
     # TODO: compare which is faster: sort here or inside kernel function
     # if K > 1 and return_sorted:
@@ -118,19 +136,23 @@ class _frnn_grid_points(Function):
       
     ctx.save_for_backward(points1, points2, lengths1, lengths2, idxs)
     ctx.mark_non_differentiable(idxs)
-    ctx.mark_non_differentiable(grid)
+    ctx.mark_non_differentiable(sorted_points2)
+    ctx.mark_non_differentiable(grid_off)
+    ctx.mark_non_differentiable(sorted_points2_idxs)
+    ctx.mark_non_differentiable(grid_params_cuda)
 
-    return idxs, dists, nn, grid
+    return idxs, dists, sorted_points2, grid_off, sorted_points2_idxs, grid_params_cuda
 
 
   @staticmethod
   @once_differentiable
-  def backward(ctx, grad_idxs, grad_dists, grad_nn, grad_grid):
+  def backward(ctx, grad_idxs, grad_dists, grad_sorted_points2, grad_grid_off,
+               grad_sorted_points2_idxs, grad_grid_params_cuda):
     points1, points2, lengths1, lengths2, idxs = ctx.saved_tensors
     grad_points1, grad_points2 = _C.frnn_backward_cuda(
       points1, points2, lengths1, lengths2, idxs, grad_dists
     )
-    return grad_points1, grad_points2, None, None, None, None, None, None
+    return grad_points1, grad_points2, None, None, None, None, None, None, None, None, None
 
 
 def frnn_grid_points(
@@ -138,8 +160,8 @@ def frnn_grid_points(
   points2: torch.Tensor,
   lengths1: Union[torch.Tensor, None] = None,
   lengths2: Union[torch.Tensor, None] = None,
-  K: int,
-  r: float,
+  K: int = -1,
+  r: float = -1,
   grid: Union[_GRID, None] = None,
   return_nn: bool = False,
   return_sorted: bool = True,     # for now we always sort the neighbors by dist
@@ -167,10 +189,22 @@ def frnn_grid_points(
     lengths1 = torch.full((points1.shape[0],), P1, dtype=torch.long, device=points1.device)
   if lengths2 is None:
     lengths2 = torch.full((points2.shape[0],), P2, dtype=torch.long, device=points2.device)
-  
-  idxs, dists, grid = _frnn_grid_points.apply(
-    points1, points2, lengths1, lengths2, K, r, grid, return_nn, return_sorted, return_grid
-  )
+
+  if grid is not None: 
+    idxs, dists, sorted_points2, grid_off, sorted_points2_idxs, grid_params_cuda = _frnn_grid_points.apply(
+      points1, points2, lengths1, lengths2, K, r, grid[0], grid[1], grid[2], grid[3], return_sorted
+    )
+  else:
+    idxs, dists, sorted_points2, grid_off, sorted_points2_idxs, grid_params_cuda = _frnn_grid_points.apply(
+      points1, points2, lengths1, lengths2, K, r, None, None, None, None, return_sorted
+    )
+
+
+  grid = _GRID(
+      sorted_points=sorted_points2, # (N, P , 3) 
+      grid_off=grid_off,  # (N, G)
+      sorted_points_idxs=sorted_points2_idxs,  # (N, P)
+      grid_params=grid_params_cuda) #(N, 8)
 
   points2_nn = None
   if return_nn:
@@ -180,7 +214,7 @@ def frnn_grid_points(
   # TODO: also change this in the c++/cuda code?  
   return dists, idxs, points2_nn, grid
 
-
+# TODO: probably do this in cuda?
 def frnn_gather(
   x: torch.Tensor,
   idxs: torch.Tensor,
@@ -198,12 +232,17 @@ def frnn_gather(
   if lengths is None:
     lengths = torch.full((N,), P2, dtype=torch.long, device=x.device)
 
+  # invalid indices are marked with -1
+  # for broadcasting we set it to zero temporarily
+  tmp_idxs = idxs.clone().detach()
+  tmp_idxs[idxs < 0] = 0
+
   # N x P1 x K x D
-  idxs_expanded = idxs[:, :, :, None].expand(-1, -1, -1, D)
+  idxs_expanded = tmp_idxs[:, :, :, None].expand(-1, -1, -1, D)
 
-  X_out = x[:, :, None].expand(-1, -1, K, -1).gather(1, idxs_expanded)
+  x_out = x[:, :, None].expand(-1, -1, K, -1).gather(1, idxs_expanded)
 
-  mask = idxs_expanded < 0
+  mask = (idxs < 0)[:, :, :, None].expand(-1, -1, -1, D)
 
   x_out[mask] = 0.0
 

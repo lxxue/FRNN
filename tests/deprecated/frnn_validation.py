@@ -1,14 +1,17 @@
+import torch
+import frnn
+import unittest
+from pytorch3d.structures import Pointclouds
+from pytorch3d.ops.knn import knn_points
+
+# from pytorch3d.io import load_ply
+from pytorch_points.utils.pc_utils import read_ply
+
+import argparse
 import glob
 import csv
 
-import torch
-import frnn
-from pytorch3d.ops.knn import knn_gather, knn_points
-from pytorch_points.utils.pc_utils import read_ply
-
-num_points_fixed_query = 100000
-
-class TestFRNN:
+class ValidateFRNN:
   def __init__(self, fname, num_pcs=1, K=5, r=0.1, same=False):
     if 'random' in fname:
       # fname format: random_{num_points}
@@ -32,7 +35,7 @@ class TestFRNN:
         pc2 = pc2.repeat(num_pcs, 1, 1)
 
     if not same:
-      pc1 = torch.rand((num_pcs, num_points_fixed_query, 3), dtype=torch.float)
+      pc1 = torch.rand((num_pcs, 100000, 3), dtype=torch.float)
     self.num_pcs = num_pcs
     self.fname = fname.split('/')[-1]
     self.K = K
@@ -44,66 +47,51 @@ class TestFRNN:
     if same:
       lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points
     else:
-      lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points_fixed_query 
+      lengths1 = torch.ones((num_pcs,), dtype=torch.long) * 100000
     lengths2 = torch.ones((num_pcs,), dtype=torch.long) * num_points
     self.lengths1_cuda = lengths1.cuda()
     self.lengths2_cuda = lengths2.cuda()
     print("{}: #points: {}".format(self.fname, num_points))
     self.grid = None
 
-  def frnn_grid(self):
-    dists, idxs, nn, grid = frnn.frnn_grid_points(
+  def frnn_grid(self): 
+    idxs_cuda, dists_cuda, nn, grid = frnn.frnn_grid_points(
       self.pc1_cuda,
       self.pc2_cuda,
       self.lengths1_cuda,
       self.lengths2_cuda,
       K=self.K,
       r=self.r,
-      grid=None,
-      return_nn=True,
-      return_sorted=True
+      return_grid=True
     )
     if self.grid is None:
       self.grid = grid
-    return dists, idxs, nn
+    return idxs_cuda, dists_cuda
 
   def frnn_grid_reuse(self):
-    dists, idxs, nn, _ = frnn.frnn_grid_points(
+    idxs_cuda_2, dists_cuda_2, nn, _ = frnn.frnn_grid_points(
       self.pc1_cuda,
       self.pc2_cuda,
       self.lengths1_cuda,
       self.lengths2_cuda,
-      K=self.K,
-      r=self.r,
-      grid=self.grid,
-      return_nn=True,
-      return_sorted=True
+      self.K,
+      self.r,
+      self.grid
     )
-    return dists, idxs, nn 
-  
+    return idxs_cuda_2, dists_cuda_2
+
   def knn(self):
-    dists, idxs, nn = knn_points(
-      self.pc1_cuda,
-      self.pc2_cuda,
+    knn_results = knn_points(
+      self.pc1_cuda, 
+      self.pc2_cuda, 
       self.lengths1_cuda,
       self.lengths2_cuda,
-      K=self.K,
-      version=-1,
-      return_nn=True,
-      return_sorted=True
-    ) 
-    mask = dists > self.r * self.r
-    idxs[mask] = -1
-    dists[mask] = -1
-    nn[mask] = 0.
-
-    # print(dists.shape)
-    # print(mask.shape)
-    # print(idxs.shape)
-    return dists, idxs, nn
+      self.K
+    )
+    return knn_results
 
   def frnn_bf(self):
-    idxs, dists = frnn._C.frnn_bf_cuda(
+    idxs_cuda_bf, dists_cuda_bf = frnn._C.frnn_bf_cuda(
       self.pc1_cuda,
       self.pc2_cuda,
       self.lengths1_cuda,
@@ -111,36 +99,23 @@ class TestFRNN:
       self.K,
       self.r
     )
-    return dists, idxs
+    return idxs_cuda_bf, dists_cuda_bf
 
-  def compare_frnn_knn(self):
-    if self.num_points > 10000000:
+  def compare(self):
+    if self.num_points > 1000000:
       print("\tnumber of points for exceed 1 million; skip")
-      return None
-    
-    dists_knn, idxs_knn, nn_knn = self.knn()
-    dists_frnn, idxs_frnn, nn_frnn = self.frnn_grid()
-    dists_frnn_bf, idxs_frnn_bf = self.frnn_bf()
-    # print(idxs_knn)
-    # print(idxs_frnn)
-    # print(idxs_frnn_bf)
+      return
+    idxs_bf, dists_bf = self.frnn_bf()
+    idxs_grid, dists_grid = self.frnn_grid()
 
-    diff_keys_percentage = torch.sum(idxs_frnn == idxs_knn).type(torch.float).item() / self.K / self.pc1_cuda.shape[1] / self.num_pcs
-    dists_all_close = torch.allclose(dists_frnn, dists_knn)
-    nn_all_close = torch.allclose(nn_frnn, nn_knn)
-    return [self.fname, self.num_points, "{:.4f}".format(diff_keys_percentage), dists_all_close, nn_all_close]
 
-  def compare_frnnreuse_knn(self):
-    if self.num_points > 10000000:
-      print("\tnumber of points for exceed 1 million; skip")
-      return None
-    dists_knn, idxs_knn, nn_knn = self.knn()
-    dists_frnn, idxs_frnn, nn_frnn = self.frnn_grid_reuse()
-
-    diff_keys_percentage = torch.sum(idxs_frnn == idxs_knn).type(torch.float).item() / self.K / self.pc1_cuda.shape[1] / self.num_pcs
-    dists_all_close = torch.allclose(dists_frnn, dists_knn)
-    nn_all_close = torch.allclose(nn_frnn, nn_knn)
-    return [self.fname, self.num_points, "{:.4f}".format(diff_keys_percentage), dists_all_close, nn_all_close]
+    if self.same:
+      diff_keys_percentage = torch.sum(idxs_grid == idxs_bf).type(torch.float).item() / self.K / self.num_points / self.num_pcs
+    else:
+      diff_keys_percentage = torch.sum(idxs_grid == idxs_bf).type(torch.float).item() / self.K / 100000 / self.num_pcs
+    dists_all_close = torch.allclose(dists_bf, dists_grid)
+    return [self.fname, self.num_points, "{:.4f}".format(diff_keys_percentage), dists_all_close]
+      
 
 def normalize_pc(pc):
   # convert pc to the unit box so that we don't need to manually set raidus for each mesh
@@ -152,7 +127,6 @@ def normalize_pc(pc):
   # print(pc.min(dim=1), pc.max(dim=1))
   return
 
-
 if __name__ == "__main__":
   fnames = sorted(glob.glob('data/*.ply') + glob.glob('data/*/*.ply'))
   fnames += ['random_10000', 'random_100000', 'random_1000000']
@@ -163,12 +137,8 @@ if __name__ == "__main__":
     for fname in fnames:
       if 'xyz' in fname or 'lucy' in fname:
         continue
-      validator = TestFRNN(fname, same=False)
-      results = validator.compare_frnn_knn()
-      print(results)
-      writer.writerow(results)
-      results = validator.compare_frnnreuse_knn()
-      print(results)
+      validator = ValidateFRNN(fname, same=False)
+      results = validator.compare()
       writer.writerow(results)
 
   with open("tests/output/frnn_validation_same.csv", 'w') as csvfile:
@@ -177,10 +147,6 @@ if __name__ == "__main__":
     for fname in fnames:
       if 'xyz' in fname or 'lucy' in fname:
         continue
-      validator = TestFRNN(fname, same=True)
-      results = validator.compare_frnn_knn()
-      print(results)
-      writer.writerow(results)
-      results = validator.compare_frnnreuse_knn()
-      print(results)
+      validator = ValidateFRNN(fname, same=True)
+      results = validator.compare()
       writer.writerow(results)
