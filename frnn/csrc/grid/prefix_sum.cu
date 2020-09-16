@@ -1,5 +1,5 @@
 // code based on https://github.com/ramakarl/fluids3/blob/master/fluids/prefix_sum.cu
-// use template argument to avoid repetition for different data types
+// TODO: use template argument to avoid repetition for different data types
 
 // number of shared memory banks is 32 after compute capability 3.5
 #define NUM_BANKS		32
