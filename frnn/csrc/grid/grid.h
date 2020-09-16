@@ -63,8 +63,9 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     const at::Tensor points2,
     const at::Tensor lengths1,
     const at::Tensor lengths2,
-    const at::Tensor grid_off,
-    const at::Tensor sorted_point_idx,
+    const at::Tensor pc2_grid_off,
+    const at::Tensor sorted_points1_idxs,
+    const at::Tensor sorted_points2_idxs,
     const at::Tensor params,
     int K,
     float r);

@@ -9,7 +9,7 @@ from pytorch_points.utils.pc_utils import read_ply
 num_points_fixed_query = 100000
 
 class TestFRNN:
-  def __init__(self, fname, num_pcs=1, K=5, r=0.5, same=False):
+  def __init__(self, fname, num_pcs=1, K=5, r=0.1, same=False):
     if 'random' in fname:
       # fname format: random_{num_points}
       num_points = int(fname.split('_')[1])
@@ -45,12 +45,12 @@ class TestFRNN:
     self.pc2_frnn = pc2.clone().detach().cuda()
     self.pc1_frnn_reuse = pc1.clone().detach().cuda()
     self.pc2_frnn_reuse = pc2.clone().detach().cuda()
-    self.pc1_knn.requires_grad_(True)
-    self.pc2_knn.requires_grad_(True)
-    self.pc1_frnn.requires_grad_(True)
-    self.pc2_frnn.requires_grad_(True)
-    self.pc1_frnn_reuse.requires_grad_(True)
-    self.pc2_frnn_reuse.requires_grad_(True)
+    # self.pc1_knn.requires_grad_(True)
+    # self.pc2_knn.requires_grad_(True)
+    # self.pc1_frnn.requires_grad_(True)
+    # self.pc2_frnn.requires_grad_(True)
+    # self.pc1_frnn_reuse.requires_grad_(True)
+    # self.pc2_frnn_reuse.requires_grad_(True)
     if same:
       lengths1 = torch.ones((num_pcs,), dtype=torch.long) * num_points
     else:
@@ -104,10 +104,10 @@ class TestFRNN:
       return_sorted=True
     ) 
     # for backward, assume all we have k neighbors within the radius
-    # mask = dists > self.r * self.r
-    # idxs[mask] = -1
-    # dists[mask] = -1
-    # nn[mask] = 0.
+    mask = dists > self.r * self.r
+    idxs[mask] = -1
+    dists[mask] = -1
+    nn[mask] = 0.
 
     # print(dists.shape)
     # print(mask.shape)
@@ -137,17 +137,17 @@ class TestFRNN:
     # dists_frnn_bf, idxs_frnn_bf = self.frnn_bf()
 
     # backward
-    loss_knn = (dists_knn * self.grad_dists).sum()
-    loss_knn.backward()
-    loss_frnn = (dists_frnn * self.grad_dists).sum()
-    loss_frnn.backward()
+    # loss_knn = (dists_knn * self.grad_dists).sum()
+    # loss_knn.backward()
+    # loss_frnn = (dists_frnn * self.grad_dists).sum()
+    # loss_frnn.backward()
     # loss_frnn_reuse = (dists_frnn_reuse * self.grad_dists).sum()
     # loss_frnn_reuse.backward()
 
-    for i in range(self.pc2_knn.shape[1]):
-      if not torch.allclose(self.pc2_knn.grad[0, i], self.pc2_frnn.grad[0, i]):
-        print(self.pc2_knn.grad[0, i])
-        print(self.pc2_frnn.grad[0, i])
+    # for i in range(self.pc2_knn.shape[1]):
+    #   if not torch.allclose(self.pc2_knn.grad[0, i], self.pc2_frnn.grad[0, i]):
+    #     print(self.pc2_knn.grad[0, i])
+    #     print(self.pc2_frnn.grad[0, i])
 
     idxs_all_same = torch.all(idxs_frnn == idxs_knn).item()
     idxs_all_same_reuse = torch.all(idxs_frnn_reuse == idxs_knn).item()
@@ -157,16 +157,19 @@ class TestFRNN:
     dists_all_close_reuse = torch.allclose(dists_frnn_reuse, dists_knn)
     nn_all_close = torch.allclose(nn_frnn, nn_knn)
     nn_all_close_reuse = torch.allclose(nn_frnn_reuse, nn_knn)
-    pc1_grad_all_close = torch.allclose(self.pc1_frnn.grad, self.pc1_knn.grad, atol=5e-6)
-    # pc1_grad_all_close_reuse = torch.allclose(self.pc1_frnn_reuse.grad, self.pc1_knn.grad)
-    pc1_grad_all_close_reuse = True
-    pc2_grad_all_close = torch.allclose(self.pc2_frnn.grad, self.pc2_knn.grad, atol=5e-6)
-    # pc2_grad_all_close_reuse = torch.allclose(self.pc2_frnn_reuse.grad, self.pc2_knn.grad)
-    pc2_grad_all_close_reuse = True
     return [self.fname, self.num_points, idxs_all_same, idxs_all_same_reuse, 
             "{:.4f}".format(diff_keys_percentage), "{:.4f}".format(diff_keys_percentage_reuse),
-            dists_all_close, dists_all_close_reuse, nn_all_close, nn_all_close_reuse, pc1_grad_all_close,
-            pc1_grad_all_close_reuse, pc2_grad_all_close, pc2_grad_all_close_reuse]
+            dists_all_close, dists_all_close_reuse, nn_all_close, nn_all_close_reuse]
+    # pc1_grad_all_close = torch.allclose(self.pc1_frnn.grad, self.pc1_knn.grad, atol=5e-6)
+    # # pc1_grad_all_close_reuse = torch.allclose(self.pc1_frnn_reuse.grad, self.pc1_knn.grad)
+    # pc1_grad_all_close_reuse = True
+    # pc2_grad_all_close = torch.allclose(self.pc2_frnn.grad, self.pc2_knn.grad, atol=5e-6)
+    # # pc2_grad_all_close_reuse = torch.allclose(self.pc2_frnn_reuse.grad, self.pc2_knn.grad)
+    # pc2_grad_all_close_reuse = True
+    # return [self.fname, self.num_points, idxs_all_same, idxs_all_same_reuse, 
+    #         "{:.4f}".format(diff_keys_percentage), "{:.4f}".format(diff_keys_percentage_reuse),
+    #         dists_all_close, dists_all_close_reuse, nn_all_close, nn_all_close_reuse, pc1_grad_all_close,
+    #         pc1_grad_all_close_reuse, pc2_grad_all_close, pc2_grad_all_close_reuse]
 
   # def compare_frnnreuse_knn(self):
   #   if self.num_points > 10000000:
@@ -194,7 +197,6 @@ def normalize_pc(pc):
 if __name__ == "__main__":
   fnames = sorted(glob.glob('data/*.ply') + glob.glob('data/*/*.ply'))
   fnames += ['random_10000', 'random_100000', 'random_1000000']
-  fnames = ['random_50000'] + fnames
   print(fnames)
   with open("tests/output/frnn_validation.csv", 'w') as csvfile:
     writer = csv.writer(csvfile)
@@ -206,7 +208,6 @@ if __name__ == "__main__":
       results = validator.compare_frnn_knn()
       print(results)
       writer.writerow(results)
-      exit(0)
       # results = validator.compare_frnnreuse_knn()
       # print(results)
       # writer.writerow(results)
