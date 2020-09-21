@@ -92,9 +92,12 @@ __global__ void InsertPointsKernel(
     int gc_y = (int) ((points[(n*P+p)*3+1]-grid_min_y) * grid_delta);
     int gc_z = (int) ((points[(n*P+p)*3+2]-grid_min_z) * grid_delta);
 
-    gc_x = std::max(std::min(gc_x, grid_res_x-1), 0);
-    gc_y = std::max(std::min(gc_y, grid_res_y-1), 0);
-    gc_z = std::max(std::min(gc_z, grid_res_z-1), 0);
+    // gc_x = std::max(std::min(gc_x, grid_res_x-1), 0);
+    // gc_y = std::max(std::min(gc_y, grid_res_y-1), 0);
+    // gc_z = std::max(std::min(gc_z, grid_res_z-1), 0);
+    gc_x = max(min(gc_x, grid_res_x-1), 0);
+    gc_y = max(min(gc_y, grid_res_y-1), 0);
+    gc_z = max(min(gc_z, grid_res_z-1), 0);
 
     int gs = (gc_x*grid_res_y + gc_y) * grid_res_z + gc_z;
     grid_cell[n*P+p] = gs;
@@ -172,8 +175,24 @@ __global__ void FindNbrsKernel(
     int n = chunk / chunks_per_cloud;
     int start_point = blockDim.x * (chunk % chunks_per_cloud);
     int p1 = start_point + threadIdx.x;
-    if (p1 >= lengths1[n])
+    int old_p1 = sorted_points1_idxs[n*P1+p1];
+    // if (old_p1 < lengths1[n] && p1 >= lengths1[n]) {
+    //   printf("n: %d; p1, %d; old_p1: %d\n", n, p1, old_p1);
+    // }
+    if (p1 >= lengths1[n]) {
+      // if (old_p1 >= lengths1[n]) {
+      //   printf("p1, %d; old_p1: %d\n", p1, old_p1);
+      // }
+      // printf("%d, %ld\n", n, lengths1[n]);
       continue;
+    }
+    // if (old_p1 >= lengths1[n]) {
+    //   printf("n: %d; p1, %d; old_p1: %d\n", n, p1, old_p1);
+    // }
+    // assert(old_p1 < lengths1[n]);
+    // if (p1 >= 3967) {
+    //   printf("n: %d, p1: %d\n", n, p1);
+    // }
     float3 cur_point;
     cur_point.x = points1[n*P1*3 + p1*3];
     cur_point.y = points1[n*P1*3 + p1*3 + 1];
@@ -196,9 +215,12 @@ __global__ void FindNbrsKernel(
     int max_gc_y = (int) std::floor((cur_point.y-grid_min_y+r) * grid_delta);
     int max_gc_z = (int) std::floor((cur_point.z-grid_min_z+r) * grid_delta);
     MinK<float, int> mink(min_dists, min_idxs, K);
-    for (int x=std::max(min_gc_x, 0); x<=std::min(max_gc_x, grid_res_x-1); ++x) {
-      for (int y=std::max(min_gc_y, 0); y<=std::min(max_gc_y, grid_res_y-1); ++y) {
-        for (int z=std::max(min_gc_z, 0); z<=std::min(max_gc_z, grid_res_z-1); ++z) {
+    // for (int x=std::max(min_gc_x, 0); x<=std::min(max_gc_x, grid_res_x-1); ++x) {
+    //   for (int y=std::max(min_gc_y, 0); y<=std::min(max_gc_y, grid_res_y-1); ++y) {
+    //     for (int z=std::max(min_gc_z, 0); z<=std::min(max_gc_z, grid_res_z-1); ++z) {
+    for (int x=max(min_gc_x, 0); x<=min(max_gc_x, grid_res_x-1); ++x) {
+      for (int y=max(min_gc_y, 0); y<=min(max_gc_y, grid_res_y-1); ++y) {
+        for (int z=max(min_gc_z, 0); z<=min(max_gc_z, grid_res_z-1); ++z) {
           int cell_idx = (x*grid_res_y + y)*grid_res_z + z;
           int p2_start = pc2_grid_off[n*G + cell_idx];
           int p2_end;
@@ -222,8 +244,13 @@ __global__ void FindNbrsKernel(
     }
     // TODO: add return_sort here
     mink.sort();
-    int old_p1 = sorted_points1_idxs[p1];
     for (int k=0; k < mink.size(); ++k) {
+      // if (old_p1 >= lengths1[0]) {
+      //   printf("n: %d, p1: %d; old_p1: %d\n", n, p1, old_p1);
+      // }
+      // if (n == 1 && p1 < lengths1[n] && old_p1 >= lengths1[0]) {
+
+      // }
       idxs[n*P1*K + old_p1*K + k] = min_idxs[k];
       dists[n*P1*K + old_p1*K + k] = min_dists[k];
     }

@@ -188,7 +188,7 @@ def normalize_pc(pc):
   # pc should be 1 x P x 3
   # [0, 1] x [0, 1] x [0, 1]
   assert pc.shape[0] == 1 and pc.shape[2] == 3
-  pc -= pc.min(dim=1)[0]
+  pc = pc - torch.min(pc, dim=1)[0]
   pc /= torch.max(pc)
   # print(pc.min(dim=1), pc.max(dim=1))
   return

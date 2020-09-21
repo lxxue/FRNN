@@ -1,19 +1,6 @@
 Point cloud,Num points,Different key percentage,Dists all close
-Armadillo.ply,172974,False,False,1.0000,1.0000,True,True,False,False
-bun_zipper.ply,35947,False,False,1.0000,1.0000,True,True,False,False
-bun_zipper_res2.ply,8171,False,False,1.0000,1.0000,True,True,False,False
+Armadillo.ply,172974,True,True,1.0000,1.0000,True,True,True,True
+bun_zipper.ply,35947,True,True,1.0000,1.0000,True,True,True,True
+bun_zipper_res2.ply,8171,True,True,1.0000,1.0000,True,True,True,True
 bun_zipper_res3.ply,1889,True,True,1.0000,1.0000,True,True,True,True
 bun_zipper_res4.ply,453,True,True,1.0000,1.0000,True,True,True,True
-dragon_vrip.ply,437645,False,False,0.9994,0.9994,True,True,False,False
-dragon_vrip_res2.ply,100250,True,True,1.0000,1.0000,True,True,True,True
-dragon_vrip_res3.ply,22998,True,True,1.0000,1.0000,True,True,True,True
-dragon_vrip_res4.ply,5205,True,True,1.0000,1.0000,True,True,True,True
-drill_shaft_vrip.ply,1961,True,True,1.0000,1.0000,True,True,True,True
-drill_shaft_zip.ply,881,True,True,1.0000,1.0000,True,True,True,True
-happy_vrip.ply,543652,False,False,0.9999,0.9999,True,True,False,False
-happy_vrip_res2.ply,144647,True,True,1.0000,1.0000,True,True,True,True
-happy_vrip_res3.ply,32328,True,True,1.0000,1.0000,True,True,True,True
-happy_vrip_res4.ply,7108,True,True,1.0000,1.0000,True,True,True,True
-random_10000,10000,True,True,1.0000,1.0000,True,True,True,True
-random_100000,100000,True,True,1.0000,1.0000,True,True,True,True
-random_1000000,1000000,True,True,1.0000,1.0000,True,True,True,True

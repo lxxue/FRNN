@@ -95,6 +95,8 @@ class _frnn_grid_points(Function):
     _C.insert_points_cuda(points1, lengths1, grid_params_cuda, pc1_grid_cnt, pc1_grid_cell, pc1_grid_idx, G)
 
     pc1_grid_off = _C.prefix_sum_cuda(pc1_grid_cnt, grid_params_cuda.cpu())
+
+    # print("last offset for pc1: ", pc1_grid_off[1, int(grid_params_cuda[1, 7].item())-2])
     
     sorted_points1 = torch.zeros((N, P1, 3), dtype=torch.float, device=points1.device)
     sorted_points1_idxs = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)
@@ -107,6 +109,9 @@ class _frnn_grid_points(Function):
       sorted_points1,
       sorted_points1_idxs
     )
+    # print("sorted idxs max: ", sorted_points1_idxs[1, :lengths1[1]].max())
+    # print("sorted idxs max: ", sorted_points1_idxs[1].max())
+    # print("unique idxs: ", torch.unique(sorted_points1_idxs[1, :lengths1[1]]).shape[0])
 
 
       # cache the grid structure for reusing 

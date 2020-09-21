@@ -19,11 +19,9 @@ __global__ void CountingSortKernel (
     int n = chunk / chunks_per_cloud;
     int start_point = blockDim.x * (chunk % chunks_per_cloud);
     int p = start_point + threadIdx.x;
-    assert(n < N);
     if (p >= lengths[n])
       continue;
 
-    assert(p < P);
     int cell_idx = grid_cell[n*P + p];
     int idx = grid_idx[n*P + p];
     if (cell_idx >= G)
