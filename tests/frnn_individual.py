@@ -3,18 +3,25 @@ import glob
 
 import torch
 import frnn
+from frnn import _C
 
 from pytorch_points.utils.pc_utils import read_ply
+from fvcore.common.benchmark import benchmark
+
+from frnn_validation import normalize_pc
 
 def save_intermediate_results(fnames):
   num_pcs = 1
   k = 8
   for fname in fnames:
+    # Problem here: our algorithm is problematic when 
+    # there is only one grid in one dimension 
+    # the drill is a long thin object which brings some trouble
     if "drill_shaft" in fname:
       continue
-    print(fname)
     pc1 = torch.FloatTensor(read_ply(fname)[None, :, :3]).cuda()  # no need for normals
     pc2 = torch.FloatTensor(read_ply(fname)[None, :, :3]).cuda()  # no need for normals
+    print(fname)
     print(pc1.shape)
     num_points = pc1.shape[1]
     normalize_pc(pc1)
@@ -24,20 +31,141 @@ def save_intermediate_results(fnames):
     dists, idxs, nn, grid = frnn.frnn_grid_points(pc1, pc2, lengths1, lengths2, K=k, r=0.1, filename=fname.split('/')[-1])
     print(fname+" done!")
 
-def normalize_pc(pc):
-  # convert pc to the unit box so that we don't need to manually set raidus for each mesh
-  # pc should be 1 x P x 3
-  # [0, 1] x [0, 1] x [0, 1]
-  assert pc.shape[0] == 1 and pc.shape[2] == 3
-  pc = pc - torch.min(pc, dim=1)[0]
-  pc /= torch.max(pc)
-  # print(pc.min(dim=1), pc.max(dim=1))
-  return
 
+class TestFRNN(unittest.TestCase):
+  def steUp(self) -> None:
+    super().setUp()
+    torch.manual_seed(1)
 
+  @staticmethod
+  def frnn_setup_grid(N, fname, ragged):
+    print(fname)
+    r = 0.1
+    MAX_RES = 100
+    points2 = torch.load("data/pc/"+fname)
+    if N > 1:
+      points2 = points2.repeat(N, 1, 1)
+    if ragged:
+      lengths2 = torch.randint(low=1, high=points2.shape[1], size=(N,), dtype=torch.long, device=points2.device)
+    else:
+      lengths2 = torch.ones((N,), dtype=torch.long, device=points2.device) * points2.shape[1]
+    GRID_PARAMS_SIZE = 8
+    grid_params_cuda = torch.zeros((N, GRID_PARAMS_SIZE), dtype=torch.float, device=points2.device)
+    torch.cuda.synchronize()
+
+    def output():
+      G = -1
+      # print(points2.shape)
+      # print(lengths2)
+      # print(points2[0, :lengths2[0]].shape)
+      # print(points2[0, :lengths2[0]].min(dim=0)[0].shape)
+      for i in range(N):
+        grid_min = points2[i, :lengths2[i]].min(dim=0)[0]
+        grid_max = points2[i, :lengths2[i]].max(dim=0)[0]
+        grid_params_cuda[i, :3] = grid_min
+        grid_size = grid_max - grid_min
+        cell_size = r
+        if cell_size < grid_size.min() / MAX_RES:
+          cell_size = grid_size.min() / MAX_RES
+        grid_params_cuda[i, 3] = 1 / cell_size
+        grid_params_cuda[i, 4:7] = torch.floor(grid_size / cell_size) + 1
+        grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
+        if G < grid_params_cuda[i, 7]:
+          G = int(grid_params_cuda[i, 7].item())
+      torch.cuda.synchronize()
+    return output
+
+  @staticmethod
+  def frnn_insert_points(grid_params_cuda, points1, points2, lengths1, lengths2):
+    G = grid_params_cuda[:, 7].max().item() 
+    N = points1.shape[0]
+    P1 = points1.shape[1]
+    pc1_grid_cnt = torch.zeros((N, G), dtype=torch.int, device=points1.device)
+    pc1_grid_cell = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)
+    pc1_grid_idx = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)
+    P2 = points2.shape[1]
+    pc2_grid_cnt = torch.zeros((N, G), dtype=torch.int, device=points1.device)
+    pc2_grid_cell = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+    pc2_grid_idx = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+    torch.cuda.synchronize()
+
+    def output():
+      _C.insert_points_cuda(points1, lengths1, grid_params_cuda, pc1_grid_cnt, pc1_grid_cell, pc1_grid_idx, G)
+      _C.insert_points_cuda(points2, lengths2, grid_params_cuda, pc2_grid_cnt, pc2_grid_cell, pc2_grid_idx, G)
+      torch.cuda.synchronize()
+    return output
+  
+  @staticmethod
+  def frnn_prefix_sum(pc1_grid_cnt, pc2_grid_cnt, grid_params_cuda):
+    torch.cuda.synchronize()
+    def output():
+      pc1_grid_off = _C.prefix_sum_cuda(pc1_grid_cnt, grid_params_cuda.cpu())
+      pc2_grid_off = _C.prefix_sum_cuda(pc2_grid_cnt, grid_params_cuda.cpu())
+      torch.cuda.synchronize()
+    return output
+  
+  @staticmethod
+  def frnn_counting_sort(points1, points2, lengths1, lengths2, 
+      pc1_grid_cell, pc2_grid_cell, pc1_grid_idx, pc2_grid_idx, 
+      pc1_grid_off, pc2_grid_off):
+    
+    sorted_points1 = torch.zeros((N, P1, 3), dtype=torch.float, device=points1.device)
+    sorted_points1_idxs = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)
+    sorted_points2 = torch.zeros((N, P2, 3), dtype=torch.float, device=points1.device)
+    sorted_points2_idxs = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+    torch.cuda.synchronize()
+
+    def output():
+      _C.counting_sort_cuda(
+        points1,
+        lengths1,
+        pc1_grid_cell,
+        pc1_grid_idx,
+        pc1_grid_off,
+        sorted_points1,
+        sorted_points1_idxs
+      )
+      _C.counting_sort_cuda(
+        points2,
+        lengths2,
+        pc2_grid_cell,
+        pc2_grid_idx,
+        pc2_grid_off,
+        sorted_points2,
+        sorted_points2_idxs
+      )
+      torch.cuda.synchronize()
+
+    return output
+
+  @staticmethod
+  def frnn_find_nbrs(sorted_points1, sorted_points2, lengths1, lengths2, 
+      pc2_grid_off, sorted_points1_idxs, sorted_points2_idxs, grid_params_cuda, K, r):
+    torch.cuda.synchronize()
+
+    def output():
+      idxs, dists = _C.find_nbrs_cuda(
+        sorted_points1,
+        sorted_points2,
+        lengths1,
+        lengths2,
+        pc2_grid_off,
+        sorted_points1_idxs,
+        sorted_points2_idxs,
+        grid_params_cuda,
+        K,
+        r
+      )
+      torch.cuda.synchronize()
+    
+    return output
 
 
 if __name__ == "__main__":
   fnames = sorted(glob.glob('data/mesh/*.ply') + glob.glob('data/mesh/*/*.ply'))
+  # fnames = ['data/mesh/lucy.ply']
   # fnames = ['data/mesh/drill/drill_shaft_zip.ply'] + fnames
   save_intermediate_results(fnames)
+  # for fname in fnames:
+  #   pc = torch.FloatTensor(read_ply(fname)[None, :, :3]).cuda()  # no need for normals
+  #   torch.save(pc, "data/pc/"+fname.split('/')[-1][:-4]+'.pt')
