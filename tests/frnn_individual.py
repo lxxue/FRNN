@@ -21,6 +21,7 @@ def save_intermediate_results(fnames):
       continue
     pc1 = torch.FloatTensor(read_ply(fname)[None, :, :3]).cuda()  # no need for normals
     pc2 = torch.FloatTensor(read_ply(fname)[None, :, :3]).cuda()  # no need for normals
+    torch.save(pc1, "data/pc/"+fname.split('/')[-1][:-4]+'.pt')
     print(fname)
     print(pc1.shape)
     num_points = pc1.shape[1]
@@ -38,8 +39,8 @@ class TestFRNN(unittest.TestCase):
     torch.manual_seed(1)
 
   @staticmethod
-  def frnn_setup_grid(N, fname, ragged):
-    print(fname)
+  def frnn_setup_grid(N, fname):
+    ragged = False
     r = 0.1
     MAX_RES = 100
     points2 = torch.load("data/pc/"+fname)
@@ -76,8 +77,23 @@ class TestFRNN(unittest.TestCase):
     return output
 
   @staticmethod
-  def frnn_insert_points(grid_params_cuda, points1, points2, lengths1, lengths2):
-    G = grid_params_cuda[:, 7].max().item() 
+  def frnn_insert_points(N, fname):
+    ragged = False
+    points1 = torch.load("data/pc/"+fname)
+    points2 = torch.load("data/pc/"+fname)
+    grid_params_cuda = torch.load("data/grid_params_cuda/"+fname)
+    if N > 1:
+      points1 = points1.repeat(N, 1, 1)
+      points2 = points2.repeat(N, 1, 1)
+      grid_params_cuda = grid_params_cuda.repeat(N, 1)
+    if ragged:
+      lengths1 = torch.randint(low=1, high=points1.shape[1], size=(N,), dtype=torch.long, device=points1.device)
+      lengths2 = torch.randint(low=1, high=points2.shape[1], size=(N,), dtype=torch.long, device=points2.device)
+    else:
+      lengths1 = torch.ones((N,), dtype=torch.long, device=points1.device) * points1.shape[1]
+      lengths2 = torch.ones((N,), dtype=torch.long, device=points2.device) * points2.shape[1]
+ 
+    G = int(grid_params_cuda[:, 7].max().item())
     N = points1.shape[0]
     P1 = points1.shape[1]
     pc1_grid_cnt = torch.zeros((N, G), dtype=torch.int, device=points1.device)
@@ -96,7 +112,15 @@ class TestFRNN(unittest.TestCase):
     return output
   
   @staticmethod
-  def frnn_prefix_sum(pc1_grid_cnt, pc2_grid_cnt, grid_params_cuda):
+  def frnn_prefix_sum(N, fname):
+    pc1_grid_cnt = torch.load("data/pc1_grid_cnt/"+fname)
+    pc2_grid_cnt = torch.load("data/pc2_grid_cnt/"+fname)
+    grid_params_cuda = torch.load("data/grid_params_cuda/"+fname)
+    if N > 1:
+      pc1_grid_cnt = pc1_grid_cnt.repeat(N, 1)
+      pc2_grid_cnt = pc2_grid_cnt.repeat(N, 1)
+      grid_params_cuda = grid_params_cuda.repeat(N, 1)
+
     torch.cuda.synchronize()
     def output():
       pc1_grid_off = _C.prefix_sum_cuda(pc1_grid_cnt, grid_params_cuda.cpu())
@@ -105,10 +129,34 @@ class TestFRNN(unittest.TestCase):
     return output
   
   @staticmethod
-  def frnn_counting_sort(points1, points2, lengths1, lengths2, 
-      pc1_grid_cell, pc2_grid_cell, pc1_grid_idx, pc2_grid_idx, 
-      pc1_grid_off, pc2_grid_off):
+  def frnn_counting_sort(N, fname):
+    ragged = False
+    points1 = torch.load("data/pc/"+fname)
+    points2 = torch.load("data/pc/"+fname)
+    pc1_grid_cell = torch.load("data/pc1_grid_cell/"+fname) 
+    pc2_grid_cell = torch.load("data/pc2_grid_cell/"+fname) 
+    pc1_grid_idx = torch.load("data/pc1_grid_idx/"+fname) 
+    pc2_grid_idx = torch.load("data/pc2_grid_idx/"+fname) 
+    pc1_grid_off = torch.load("data/pc1_grid_off/"+fname) 
+    pc2_grid_off = torch.load("data/pc2_grid_off/"+fname) 
+    if N > 1:
+      points1 = points1.repeat(N, 1, 1)
+      points2 = points2.repeat(N, 1, 1)
+      pc1_grid_cell = pc1_grid_cell.repeat(N, 1)
+      pc2_grid_cell = pc2_grid_cell.repeat(N, 1)
+      pc1_grid_idx = pc1_grid_idx.repeat(N, 1)
+      pc2_grid_idx = pc2_grid_idx.repeat(N, 1)
+      pc1_grid_off = pc1_grid_off.repeat(N, 1)
+      pc2_grid_off = pc2_grid_off.repeat(N, 1)
+    if ragged:
+      lengths1 = torch.randint(low=1, high=points1.shape[1], size=(N,), dtype=torch.long, device=points1.device)
+      lengths2 = torch.randint(low=1, high=points2.shape[1], size=(N,), dtype=torch.long, device=points2.device)
+    else:
+      lengths1 = torch.ones((N,), dtype=torch.long, device=points1.device) * points1.shape[1]
+      lengths2 = torch.ones((N,), dtype=torch.long, device=points2.device) * points2.shape[1]
     
+    P1 = points1.shape[1]
+    P2 = points2.shape[1]
     sorted_points1 = torch.zeros((N, P1, 3), dtype=torch.float, device=points1.device)
     sorted_points1_idxs = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)
     sorted_points2 = torch.zeros((N, P2, 3), dtype=torch.float, device=points1.device)
@@ -139,8 +187,31 @@ class TestFRNN(unittest.TestCase):
     return output
 
   @staticmethod
-  def frnn_find_nbrs(sorted_points1, sorted_points2, lengths1, lengths2, 
-      pc2_grid_off, sorted_points1_idxs, sorted_points2_idxs, grid_params_cuda, K, r):
+  def frnn_find_nbrs(N, fname, K):
+    print(N, fname, K)
+    r = 0.1
+    ragged = False
+    
+    sorted_points1 = torch.load("data/sorted_points1/"+fname) 
+    sorted_points2 = torch.load("data/sorted_points2/"+fname) 
+    sorted_points1_idxs = torch.load("data/sorted_points1_idxs/"+fname) 
+    sorted_points2_idxs = torch.load("data/sorted_points2_idxs/"+fname) 
+    pc2_grid_off = torch.load("data/pc2_grid_off/"+fname) 
+    grid_params_cuda = torch.load("data/grid_params_cuda/"+fname)
+    if N > 1:
+      sorted_points1 = sorted_points1.repeat(N, 1, 1)
+      sorted_points2 = sorted_points2.repeat(N, 1, 1)
+      sorted_points1_idxs = sorted_points1_idxs.repeat(N, 1)
+      sorted_points2_idxs = sorted_points2_idxs.repeat(N, 1)
+      pc2_grid_off = pc2_grid_off.repeat(N, 1)
+      grid_params_cuda = grid_params_cuda.repeat(N, 1)
+
+    if ragged:
+      lengths1 = torch.randint(low=1, high=points1.shape[1], size=(N,), dtype=torch.long, device=points1.device)
+      lengths2 = torch.randint(low=1, high=points2.shape[1], size=(N,), dtype=torch.long, device=points2.device)
+    else:
+      lengths1 = torch.ones((N,), dtype=torch.long, device=sorted_points1.device) * sorted_points1.shape[1]
+      lengths2 = torch.ones((N,), dtype=torch.long, device=sorted_points2.device) * sorted_points2.shape[1]
     torch.cuda.synchronize()
 
     def output():

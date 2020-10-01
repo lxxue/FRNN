@@ -33,9 +33,8 @@ class _frnn_grid_points(Function):
       sorted_points2_idxs = None,
       grid_params_cuda = None,
       return_sorted: bool = True,
-      filename: str = None
+      # filename: str = None
   ):
-    filename="foo"
     """
     TODO: add docs
     """
@@ -60,7 +59,7 @@ class _frnn_grid_points(Function):
         grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
         if G < grid_params_cuda[i, 7]:
           G = int(grid_params_cuda[i, 7].item())
-      torch.save(grid_params_cuda, "data/grid_params_cuda/"+filename[:-4]+".pt")
+      # torch.save(grid_params_cuda, "data/grid_params_cuda/"+filename[:-4]+".pt")
 
       # insert points into the grid
       P2 = points2.shape[1]
@@ -68,14 +67,14 @@ class _frnn_grid_points(Function):
       pc2_grid_cell = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
       pc2_grid_idx = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
       _C.insert_points_cuda(points2, lengths2, grid_params_cuda, pc2_grid_cnt, pc2_grid_cell, pc2_grid_idx, G)
-      torch.save(pc2_grid_cnt, "data/pc2_grid_cnt/"+filename[:-4]+".pt")
-      torch.save(pc2_grid_cell, "data/pc2_grid_cell/"+filename[:-4]+".pt")
-      torch.save(pc2_grid_idx, "data/pc2_grid_idx/"+filename[:-4]+".pt")
+      # torch.save(pc2_grid_cnt, "data/pc2_grid_cnt/"+filename[:-4]+".pt")
+      # torch.save(pc2_grid_cell, "data/pc2_grid_cell/"+filename[:-4]+".pt")
+      # torch.save(pc2_grid_idx, "data/pc2_grid_idx/"+filename[:-4]+".pt")
 
 
       # compute the offset for each grid
       pc2_grid_off = _C.prefix_sum_cuda(pc2_grid_cnt, grid_params_cuda.cpu())
-      torch.save(pc2_grid_off, "data/pc2_grid_off/"+filename[:-4]+".pt")
+      # torch.save(pc2_grid_off, "data/pc2_grid_off/"+filename[:-4]+".pt")
 
       # sort points according to their grid positions and insertion orders
       sorted_points2 = torch.zeros((N, P2, 3), dtype=torch.float, device=points1.device)
@@ -89,8 +88,8 @@ class _frnn_grid_points(Function):
         sorted_points2,
         sorted_points2_idxs
       )
-      torch.save(sorted_points2, "data/sorted_points2/"+filename[:-4]+".pt")
-      torch.save(sorted_points2_idxs, "data/sorted_points2_idxs/"+filename[:-4]+".pt")
+      # torch.save(sorted_points2, "data/sorted_points2/"+filename[:-4]+".pt")
+      # torch.save(sorted_points2_idxs, "data/sorted_points2_idxs/"+filename[:-4]+".pt")
 
     assert(sorted_points2 is not None and pc2_grid_off is not None and sorted_points2_idxs is not None and grid_params_cuda is not None)
 
@@ -102,12 +101,12 @@ class _frnn_grid_points(Function):
     pc1_grid_cell = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)
     pc1_grid_idx = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)
     _C.insert_points_cuda(points1, lengths1, grid_params_cuda, pc1_grid_cnt, pc1_grid_cell, pc1_grid_idx, G)
-    torch.save(pc1_grid_cnt, "data/pc1_grid_cnt/"+filename[:-4]+".pt")
-    torch.save(pc1_grid_cell, "data/pc1_grid_cell/"+filename[:-4]+".pt")
-    torch.save(pc1_grid_idx, "data/pc1_grid_idx/"+filename[:-4]+".pt")
+    # torch.save(pc1_grid_cnt, "data/pc1_grid_cnt/"+filename[:-4]+".pt")
+    # torch.save(pc1_grid_cell, "data/pc1_grid_cell/"+filename[:-4]+".pt")
+    # torch.save(pc1_grid_idx, "data/pc1_grid_idx/"+filename[:-4]+".pt")
 
     pc1_grid_off = _C.prefix_sum_cuda(pc1_grid_cnt, grid_params_cuda.cpu())
-    torch.save(pc1_grid_off, "data/pc1_grid_off/"+filename[:-4]+".pt")
+    # torch.save(pc1_grid_off, "data/pc1_grid_off/"+filename[:-4]+".pt")
 
     # print("last offset for pc1: ", pc1_grid_off[1, int(grid_params_cuda[1, 7].item())-2])
     
@@ -122,8 +121,8 @@ class _frnn_grid_points(Function):
       sorted_points1,
       sorted_points1_idxs
     )
-    torch.save(sorted_points1, "data/sorted_points1/"+filename[:-4]+".pt")
-    torch.save(sorted_points1_idxs, "data/sorted_points1_idxs/"+filename[:-4]+".pt")
+    # torch.save(sorted_points1, "data/sorted_points1/"+filename[:-4]+".pt")
+    # torch.save(sorted_points1_idxs, "data/sorted_points1_idxs/"+filename[:-4]+".pt")
     # print("sorted idxs max: ", sorted_points1_idxs[1, :lengths1[1]].max())
     # print("sorted idxs max: ", sorted_points1_idxs[1].max())
     # print("unique idxs: ", torch.unique(sorted_points1_idxs[1, :lengths1[1]]).shape[0])
@@ -196,7 +195,7 @@ class _frnn_grid_points(Function):
   @staticmethod
   @once_differentiable
   def backward(ctx, grad_idxs, grad_dists, grad_sorted_points2, grad_pc2_grid_off,
-               grad_sorted_points2_idxs, grad_grid_params_cuda, grad_filename):
+               grad_sorted_points2_idxs, grad_grid_params_cuda):
     points1, points2, lengths1, lengths2, idxs = ctx.saved_tensors
     grad_points1, grad_points2 = _C.frnn_backward_cuda(
       points1, points2, lengths1, lengths2, idxs, grad_dists
@@ -214,7 +213,7 @@ def frnn_grid_points(
   grid: Union[_GRID, None] = None,
   return_nn: bool = False,
   return_sorted: bool = True,     # for now we always sort the neighbors by dist
-  filename: str = None,
+  # filename: str = None,
   # return_grid: bool = False,      # for reusing grid structure
 ):
   """
@@ -246,9 +245,8 @@ def frnn_grid_points(
     )
   else:
     idxs, dists, sorted_points2, pc2_grid_off, sorted_points2_idxs, grid_params_cuda = _frnn_grid_points.apply(
-      points1, points2, lengths1, lengths2, K, r, None, None, None, None, return_sorted, filename
+      points1, points2, lengths1, lengths2, K, r, None, None, None, None, return_sorted, # filename
     )
-
 
   grid = _GRID(
       sorted_points2=sorted_points2, # (N, P , 3) 
