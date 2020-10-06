@@ -33,7 +33,8 @@ class _frnn_grid_points(Function):
       sorted_points2_idxs = None,
       grid_params_cuda = None,
       return_sorted: bool = True,
-      filename: str = None
+      radius_cell_ratio: float = 2.0,
+      filename: str = None,
   ):
     """
     TODO: add docs
@@ -51,7 +52,7 @@ class _frnn_grid_points(Function):
         grid_max = points2[i, :lengths2[i]].max(dim=0)[0]
         grid_params_cuda[i, :3] = grid_min
         grid_size = grid_max - grid_min
-        cell_size = r
+        cell_size = r / radius_cell_ratio
         if cell_size < grid_size.min()/MAX_RES:
           cell_size = grid_size.min() / MAX_RES
         grid_params_cuda[i, 3] = 1 / cell_size
@@ -214,6 +215,7 @@ def frnn_grid_points(
   return_nn: bool = False,
   return_sorted: bool = True,     # for now we always sort the neighbors by dist
   filename: str = None,
+  radius_cell_ratio: float = 2.0,
   # return_grid: bool = False,      # for reusing grid structure
 ):
   """
@@ -241,11 +243,11 @@ def frnn_grid_points(
 
   if grid is not None: 
     idxs, dists, sorted_points2, pc2_grid_off, sorted_points2_idxs, grid_params_cuda = _frnn_grid_points.apply(
-      points1, points2, lengths1, lengths2, K, r, grid[0], grid[1], grid[2], grid[3], return_sorted
+      points1, points2, lengths1, lengths2, K, r, grid[0], grid[1], grid[2], grid[3], return_sorted, radius_cell_ratio
     )
   else:
     idxs, dists, sorted_points2, pc2_grid_off, sorted_points2_idxs, grid_params_cuda = _frnn_grid_points.apply(
-      points1, points2, lengths1, lengths2, K, r, None, None, None, None, return_sorted, filename
+      points1, points2, lengths1, lengths2, K, r, None, None, None, None, return_sorted, radius_cell_ratio, filename
     )
 
 

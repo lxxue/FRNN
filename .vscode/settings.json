@@ -55,5 +55,5 @@
         "__nullptr": "cpp",
         "*.cuh": "cpp"
     },
-    "python.pythonPath": "/local/home/lixxue/miniconda3/envs/dss2/bin/python"
+    "python.pythonPath": "/local/home/lixxue/miniconda3/envs/DSS/bin/python"
 }

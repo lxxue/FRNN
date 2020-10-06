@@ -33,7 +33,7 @@ class _frnn_grid_points(Function):
       sorted_points2_idxs = None,
       grid_params_cuda = None,
       return_sorted: bool = True,
-      radius_cell_ratio: float = 1.0,
+      radius_cell_ratio: float = 2.0,
       # filename: str = None
   ):
     """
@@ -214,7 +214,7 @@ def frnn_grid_points(
   grid: Union[_GRID, None] = None,
   return_nn: bool = False,
   return_sorted: bool = True,     # for now we always sort the neighbors by dist
-  radius_cell_ratio = 1.0,
+  radius_cell_ratio: float = 2.0,
   # filename: str = None,
   # return_grid: bool = False,      # for reusing grid structure
 ):

@@ -25,8 +25,9 @@ def save_intermediate_results(fnames):
     print(fname)
     print(pc1.shape)
     num_points = pc1.shape[1]
-    normalize_pc(pc1)
-    normalize_pc(pc2)
+    pc1 = normalize_pc(pc1)
+    print(pc1.min(dim=1)[0], pc1.max(dim=1)[0])
+    pc2 = normalize_pc(pc2)
     lengths1 = torch.ones((num_pcs,), dtype=torch.long).cuda() * num_points
     lengths2 = torch.ones((num_pcs,), dtype=torch.long).cuda() * num_points
     dists, idxs, nn, grid = frnn.frnn_grid_points(pc1, pc2, lengths1, lengths2, K=k, r=0.1, filename=fname.split('/')[-1])
@@ -188,7 +189,7 @@ class TestFRNN(unittest.TestCase):
 
   @staticmethod
   def frnn_find_nbrs(N, fname, K):
-    print(N, fname, K)
+    # print(N, fname, K)
     r = 0.1
     ragged = False
     

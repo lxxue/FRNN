@@ -5,13 +5,11 @@ from frnn_whole import Compare
 import glob
 import torch
 import csv
+import numpy as np
 
-def bm_frnn(fnames):
-  Ns = [1, 2, 4, 8]
-  Ks = [1, 2, 4, 8, 16] #, 32]
-  # Ns = [8]
-  # Ks = [32]
-  # Ks = [16]
+def bm_frnn_N(fnames):
+  Ns = [1, 2, 3, 4, 5, 6, 7, 8]
+  Ks = [8]
   test_cases = product(fnames, Ns, Ks)
   kwargs_list = []
 
@@ -20,42 +18,41 @@ def bm_frnn(fnames):
     kwargs_list.append({"fname":fname.split("/")[-1], "N":N, "K":K, "ratio":2.0})
   
   outputs = benchmark(Compare.frnn, "frnn", kwargs_list, num_iters=5, warmup_iters=1)
-  with open("tests/output/frnn_whole_ratio2.csv", "w") as csvfile:
+  with open("tests/output/frnn_N.csv", "w") as csvfile:
     writer = csv.writer(csvfile)
     idx = 0
+    writer.writerow(["N", 1,2,3,4,5,6,7,8])
     for fname_i in range(len(fnames)):
+      row = [fnames[fname_i]]
       for N_i in range(len(Ns)):
-        for K_i in range(len(Ks)):
-          fname = fnames[fname_i].split('/')[-1] + '_' + str(Ns[N_i]) + '_' + str(Ks[K_i])
-          row = [fname]
-          row.append("{:.0f}".format(float(outputs[idx][1])))
-          idx += 1
-          writer.writerow(row)
+        # fname = fnames[fname_i].split('/')[-1] + '_' + str(Ns[N_i]) + '_' + str(Ks[K_i])
+        row.append("{:.0f}".format(float(outputs[idx][1])))
+        idx += 1
+      writer.writerow(row)
 
-def bm_knn(fnames):
-  Ns = [1, 2, 4, 8]
-  Ks = [1, 2, 4, 8, 16]
-  # Ns = [8]
-  # Ks = [32]
+def bm_frnn_K(fnames):
+  Ns = [1]
+  Ks = np.arange(1, 33, dtype=np.int)
   test_cases = product(fnames, Ns, Ks)
   kwargs_list = []
 
   for case in test_cases:
     fname, N, K = case
-    kwargs_list.append({"fname":fname.split("/")[-1], "N":N, "K":K})
+    kwargs_list.append({"fname":fname.split("/")[-1], "N":N, "K":K, "ratio":2.0})
   
-  outputs = benchmark(Compare.knn, "knn", kwargs_list, num_iters=5, warmup_iters=1)
-  with open("tests/output/knn_whole.csv", "w") as csvfile:
+  outputs = benchmark(Compare.frnn, "frnn", kwargs_list, num_iters=5, warmup_iters=1)
+  with open("tests/output/frnn_K.csv", "w") as csvfile:
     writer = csv.writer(csvfile)
     idx = 0
+    writer.writerow(["K"]+[i for i in Ks])
     for fname_i in range(len(fnames)):
-      for N_i in range(len(Ns)):
-        for K_i in range(len(Ks)):
-          fname = fnames[fname_i].split('/')[-1] + '_' + str(Ns[N_i]) + '_' + str(Ks[K_i])
-          row = [fname]
-          row.append("{:.0f}".format(float(outputs[idx][1])))
-          idx += 1
-          writer.writerow(row)
+      row = [fnames[fname_i]]
+      for N_i in range(len(Ks)):
+        # fname = fnames[fname_i].split('/')[-1] + '_' + str(Ns[N_i]) + '_' + str(Ks[K_i])
+        row.append("{:.0f}".format(float(outputs[idx][1])))
+        idx += 1
+      writer.writerow(row)
+
 
 if __name__ == "__main__":
   fnames = sorted(glob.glob('data/pc/*.pt'))
@@ -68,5 +65,5 @@ if __name__ == "__main__":
     # print(pc.max(axis=1)[0], pc.min(axis=1)[0])
     # torch.save(pc, fname)
   # fnames = fnames[0:1]
-  bm_frnn(fnames)
-  bm_knn(fnames)
+  bm_frnn_N(fnames)
+  bm_frnn_K(fnames)

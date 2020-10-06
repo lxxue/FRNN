@@ -23,8 +23,8 @@ class TestFRNN:
       pc1 = torch.FloatTensor(read_ply(fname)[None, :, :3])  # no need for normals
       # pc2 = pc1
       pc2 = torch.FloatTensor(read_ply(fname)[None, :, :3])  # no need for normals
-      normalize_pc(pc1)
-      normalize_pc(pc2)
+      pc1 = normalize_pc(pc1)
+      pc2 = normalize_pc(pc2)
       # print("pc1 bbox: ", pc1.min(dim=1)[0], pc1.max(dim=1)[0])
       num_points = pc2.shape[1]
       if num_pcs > 1:
@@ -189,9 +189,9 @@ def normalize_pc(pc):
   # [0, 1] x [0, 1] x [0, 1]
   assert pc.shape[0] == 1 and pc.shape[2] == 3
   pc = pc - torch.min(pc, dim=1)[0]
-  pc /= torch.max(pc)
-  # print(pc.min(dim=1), pc.max(dim=1))
-  return
+  pc = pc / torch.max(pc)
+  # print("pc", pc.min(dim=1)[0], pc.max(dim=1)[0])
+  return pc
 
 
 if __name__ == "__main__":
