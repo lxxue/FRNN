@@ -1,0 +1,568 @@
+
+Armadillo.pt 1 1
+Armadillo.pt 1 2
+Armadillo.pt 1 4
+Armadillo.pt 1 8
+Armadillo.pt 1 16
+Armadillo.pt 2 1
+Armadillo.pt 2 2
+Armadillo.pt 2 4
+Armadillo.pt 2 8
+Armadillo.pt 2 16
+Armadillo.pt 4 1
+Armadillo.pt 4 2
+Armadillo.pt 4 4
+Armadillo.pt 4 8
+Armadillo.pt 4 16
+Armadillo.pt 8 1
+Armadillo.pt 8 2
+Armadillo.pt 8 4
+Armadillo.pt 8 8
+Armadillo.pt 8 16
+bun_zipper.pt 1 1
+bun_zipper.pt 1 2
+bun_zipper.pt 1 4
+bun_zipper.pt 1 8
+bun_zipper.pt 1 16
+bun_zipper.pt 2 1
+bun_zipper.pt 2 2
+bun_zipper.pt 2 4
+bun_zipper.pt 2 8
+bun_zipper.pt 2 16
+bun_zipper.pt 4 1
+bun_zipper.pt 4 2
+bun_zipper.pt 4 4
+bun_zipper.pt 4 8
+bun_zipper.pt 4 16
+bun_zipper.pt 8 1
+bun_zipper.pt 8 2
+bun_zipper.pt 8 4
+bun_zipper.pt 8 8
+bun_zipper.pt 8 16
+dragon_vrip.pt 1 1
+dragon_vrip.pt 1 2
+dragon_vrip.pt 1 4
+dragon_vrip.pt 1 8
+dragon_vrip.pt 1 16
+dragon_vrip.pt 2 1
+dragon_vrip.pt 2 2
+dragon_vrip.pt 2 4
+dragon_vrip.pt 2 8
+dragon_vrip.pt 2 16
+dragon_vrip.pt 4 1
+dragon_vrip.pt 4 2
+dragon_vrip.pt 4 4
+dragon_vrip.pt 4 8
+dragon_vrip.pt 4 16
+dragon_vrip.pt 8 1
+dragon_vrip.pt 8 2
+dragon_vrip.pt 8 4
+dragon_vrip.pt 8 8
+dragon_vrip.pt 8 16
+happy_vrip.pt 1 1
+happy_vrip.pt 1 2
+happy_vrip.pt 1 4
+happy_vrip.pt 1 8
+happy_vrip.pt 1 16
+happy_vrip.pt 2 1
+happy_vrip.pt 2 2
+happy_vrip.pt 2 4
+happy_vrip.pt 2 8
+happy_vrip.pt 2 16
+happy_vrip.pt 4 1
+happy_vrip.pt 4 2
+happy_vrip.pt 4 4
+happy_vrip.pt 4 8
+happy_vrip.pt 4 16
+happy_vrip.pt 8 1
+happy_vrip.pt 8 2
+happy_vrip.pt 8 4
+happy_vrip.pt 8 8
+happy_vrip.pt 8 16
+random_10000.pt 1 1
+random_10000.pt 1 2
+random_10000.pt 1 4
+random_10000.pt 1 8
+random_10000.pt 1 16
+random_10000.pt 2 1
+random_10000.pt 2 2
+random_10000.pt 2 4
+random_10000.pt 2 8
+random_10000.pt 2 16
+random_10000.pt 4 1
+random_10000.pt 4 2
+random_10000.pt 4 4
+random_10000.pt 4 8
+random_10000.pt 4 16
+random_10000.pt 8 1
+random_10000.pt 8 2
+random_10000.pt 8 4
+random_10000.pt 8 8
+random_10000.pt 8 16
+random_100000.pt 1 1
+random_100000.pt 1 2
+random_100000.pt 1 4
+random_100000.pt 1 8
+random_100000.pt 1 16
+random_100000.pt 2 1
+random_100000.pt 2 2
+random_100000.pt 2 4
+random_100000.pt 2 8
+random_100000.pt 2 16
+random_100000.pt 4 1
+random_100000.pt 4 2
+random_100000.pt 4 4
+random_100000.pt 4 8
+random_100000.pt 4 16
+random_100000.pt 8 1
+random_100000.pt 8 2
+random_100000.pt 8 4
+random_100000.pt 8 8
+random_100000.pt 8 16
+random_1000000.pt 1 1
+random_1000000.pt 1 2
+random_1000000.pt 1 4
+random_1000000.pt 1 8
+random_1000000.pt 1 16
+random_1000000.pt 2 1
+random_1000000.pt 2 2
+random_1000000.pt 2 4
+random_1000000.pt 2 8
+random_1000000.pt 2 16
+random_1000000.pt 4 1
+random_1000000.pt 4 2
+random_1000000.pt 4 4
+random_1000000.pt 4 8
+random_1000000.pt 4 16
+random_1000000.pt 8 1
+random_1000000.pt 8 2
+random_1000000.pt 8 4
+random_1000000.pt 8 8
+random_1000000.pt 8 16
+Benchmark                         Avg Time(μs)      Peak Time(μs) Iterations
+--------------------------------------------------------------------------------
+frnn_Armadillo.pt_1_1                 14462           14998              5
+frnn_Armadillo.pt_1_2                 14587           15042              5
+frnn_Armadillo.pt_1_4                 13877           14540              5
+frnn_Armadillo.pt_1_8                 12494           12607              5
+frnn_Armadillo.pt_1_16                16261           16670              5
+frnn_Armadillo.pt_2_1                 23871           28323              5
+frnn_Armadillo.pt_2_2                 22307           22741              5
+frnn_Armadillo.pt_2_4                 22986           23630              5
+frnn_Armadillo.pt_2_8                 24882           25714              5
+frnn_Armadillo.pt_2_16                33902           35457              5
+frnn_Armadillo.pt_4_1                 43919           44346              5
+frnn_Armadillo.pt_4_2                 44171           45316              5
+frnn_Armadillo.pt_4_4                 45465           45825              5
+frnn_Armadillo.pt_4_8                 49179           50202              5
+frnn_Armadillo.pt_4_16                66740           67414              5
+frnn_Armadillo.pt_8_1                 92437           92706              5
+frnn_Armadillo.pt_8_2                 92773           93918              5
+frnn_Armadillo.pt_8_4                 95274           95880              5
+frnn_Armadillo.pt_8_8                103724          105332              5
+frnn_Armadillo.pt_8_16               139034          139352              5
+frnn_bun_zipper.pt_1_1                 1243            1246              5
+frnn_bun_zipper.pt_1_2                 1267            1273              5
+frnn_bun_zipper.pt_1_4                 1307            1356              5
+frnn_bun_zipper.pt_1_8                 1406            1413              5
+frnn_bun_zipper.pt_1_16                2044            2063              5
+frnn_bun_zipper.pt_2_1                 2007            2030              5
+frnn_bun_zipper.pt_2_2                 2054            2066              5
+frnn_bun_zipper.pt_2_4                 2116            2136              5
+frnn_bun_zipper.pt_2_8                 2306            2330              5
+frnn_bun_zipper.pt_2_16                3982            4052              5
+frnn_bun_zipper.pt_4_1                 3617            3623              5
+frnn_bun_zipper.pt_4_2                 3702            3728              5
+frnn_bun_zipper.pt_4_4                 3855            3876              5
+frnn_bun_zipper.pt_4_8                 4241            4270              5
+frnn_bun_zipper.pt_4_16                7257            7324              5
+frnn_bun_zipper.pt_8_1                 6811            6847              5
+frnn_bun_zipper.pt_8_2                 6885            6929              5
+frnn_bun_zipper.pt_8_4                 7139            7163              5
+frnn_bun_zipper.pt_8_8                 8049            8108              5
+frnn_bun_zipper.pt_8_16               14352           14639              5
+frnn_dragon_vrip.pt_1_1               83389           84074              5
+frnn_dragon_vrip.pt_1_2               84077           85740              5
+frnn_dragon_vrip.pt_1_4               84373           85397              5
+frnn_dragon_vrip.pt_1_8               87567           88402              5
+frnn_dragon_vrip.pt_1_16             111911          112299              5
+frnn_dragon_vrip.pt_2_1              170708          173573              5
+frnn_dragon_vrip.pt_2_2              171826          174256              5
+frnn_dragon_vrip.pt_2_4              172941          175846              5
+frnn_dragon_vrip.pt_2_8              184553          187656              5
+frnn_dragon_vrip.pt_2_16             232065          235652              5
+frnn_dragon_vrip.pt_4_1              344703          349105              5
+frnn_dragon_vrip.pt_4_2              353032          356064              5
+frnn_dragon_vrip.pt_4_4              356735          364946              5
+frnn_dragon_vrip.pt_4_8              375604          381358              5
+frnn_dragon_vrip.pt_4_16             468370          471810              5
+frnn_dragon_vrip.pt_8_1              757531          765903              5
+frnn_dragon_vrip.pt_8_2              759608          766215              5
+frnn_dragon_vrip.pt_8_4              769088          775918              5
+frnn_dragon_vrip.pt_8_8              802042          812937              5
+frnn_dragon_vrip.pt_8_16             983775          998922              5
+frnn_happy_vrip.pt_1_1               170764          175686              5
+frnn_happy_vrip.pt_1_2               170713          174349              5
+frnn_happy_vrip.pt_1_4               169269          172050              5
+frnn_happy_vrip.pt_1_8               176509          181347              5
+frnn_happy_vrip.pt_1_16              225783          229160              5
+frnn_happy_vrip.pt_2_1               342252          349377              5
+frnn_happy_vrip.pt_2_2               340790          350605              5
+frnn_happy_vrip.pt_2_4               348791          358155              5
+frnn_happy_vrip.pt_2_8               362851          366176              5
+frnn_happy_vrip.pt_2_16              454126          464369              5
+frnn_happy_vrip.pt_4_1               729911          743714              5
+frnn_happy_vrip.pt_4_2               727592          739938              5
+frnn_happy_vrip.pt_4_4               722805          737164              5
+frnn_happy_vrip.pt_4_8               752531          763983              5
+frnn_happy_vrip.pt_4_16              944460          962729              5
+frnn_happy_vrip.pt_8_1              1499328         1530978              5
+frnn_happy_vrip.pt_8_2              1518991         1540345              5
+frnn_happy_vrip.pt_8_4              1500706         1518048              5
+frnn_happy_vrip.pt_8_8              1569755         1595029              5
+frnn_happy_vrip.pt_8_16             1895675         1946693              5
+frnn_random_10000.pt_1_1                823             830              5
+frnn_random_10000.pt_1_2                827             833              5
+frnn_random_10000.pt_1_4                835             836              5
+frnn_random_10000.pt_1_8                862             868              5
+frnn_random_10000.pt_1_16               914             922              5
+frnn_random_10000.pt_2_1               1686            3323              5
+frnn_random_10000.pt_2_2               1279            1307              5
+frnn_random_10000.pt_2_4               1292            1322              5
+frnn_random_10000.pt_2_8               1323            1348              5
+frnn_random_10000.pt_2_16              1431            1454              5
+frnn_random_10000.pt_4_1               2168            2176              5
+frnn_random_10000.pt_4_2               2183            2186              5
+frnn_random_10000.pt_4_4               2208            2213              5
+frnn_random_10000.pt_4_8               2331            2338              5
+frnn_random_10000.pt_4_16              3000            3047              5
+frnn_random_10000.pt_8_1               3994            3999              5
+frnn_random_10000.pt_8_2               4017            4019              5
+frnn_random_10000.pt_8_4               4086            4096              5
+frnn_random_10000.pt_8_8               4370            4385              5
+frnn_random_10000.pt_8_16              5751            5766              5
+frnn_random_100000.pt_1_1              1695            1698              5
+frnn_random_100000.pt_1_2              1748            1766              5
+frnn_random_100000.pt_1_4              1877            1895              5
+frnn_random_100000.pt_1_8              2326            2338              5
+frnn_random_100000.pt_1_16             5547            5601              5
+frnn_random_100000.pt_2_1              3400            3444              5
+frnn_random_100000.pt_2_2              3445            3543              5
+frnn_random_100000.pt_2_4              3810            3914              5
+frnn_random_100000.pt_2_8              4624            4672              5
+frnn_random_100000.pt_2_16            10774           10973              5
+frnn_random_100000.pt_4_1              6646            6779              5
+frnn_random_100000.pt_4_2              6883            7079              5
+frnn_random_100000.pt_4_4              7528            7563              5
+frnn_random_100000.pt_4_8              9513            9677              5
+frnn_random_100000.pt_4_16            22127           22250              5
+frnn_random_100000.pt_8_1             13438           13542              5
+frnn_random_100000.pt_8_2             14201           14420              5
+frnn_random_100000.pt_8_4             15515           15970              5
+frnn_random_100000.pt_8_8             18753           19026              5
+frnn_random_100000.pt_8_16            46318           46777              5
+frnn_random_1000000.pt_1_1           103242          105740              5
+frnn_random_1000000.pt_1_2           103710          105784              5
+frnn_random_1000000.pt_1_4           107479          108953              5
+frnn_random_1000000.pt_1_8           117964          119605              5
+frnn_random_1000000.pt_1_16          164600          165651              5
+frnn_random_1000000.pt_2_1           211997          213851              5
+frnn_random_1000000.pt_2_2           214524          216629              5
+frnn_random_1000000.pt_2_4           222297          225010              5
+frnn_random_1000000.pt_2_8           245190          246919              5
+frnn_random_1000000.pt_2_16          321074          328379              5
+frnn_random_1000000.pt_4_1           452608          456415              5
+frnn_random_1000000.pt_4_2           456753          464145              5
+frnn_random_1000000.pt_4_4           468888          474230              5
+frnn_random_1000000.pt_4_8           509343          513207              5
+frnn_random_1000000.pt_4_16          664833          686807              5
+frnn_random_1000000.pt_8_1           948449          958758              5
+frnn_random_1000000.pt_8_2           966684          973401              5
+frnn_random_1000000.pt_8_4           994340         1000231              5
+frnn_random_1000000.pt_8_8          1061429         1072227              5
+frnn_random_1000000.pt_8_16         1361884         1365684              5
+--------------------------------------------------------------------------------
+
+Armadillo.pt 1 1
+Armadillo.pt 1 2
+Armadillo.pt 1 4
+Armadillo.pt 1 8
+Armadillo.pt 1 16
+Armadillo.pt 2 1
+Armadillo.pt 2 2
+Armadillo.pt 2 4
+Armadillo.pt 2 8
+Armadillo.pt 2 16
+Armadillo.pt 4 1
+Armadillo.pt 4 2
+Armadillo.pt 4 4
+Armadillo.pt 4 8
+Armadillo.pt 4 16
+Armadillo.pt 8 1
+Armadillo.pt 8 2
+Armadillo.pt 8 4
+Armadillo.pt 8 8
+Armadillo.pt 8 16
+bun_zipper.pt 1 1
+bun_zipper.pt 1 2
+bun_zipper.pt 1 4
+bun_zipper.pt 1 8
+bun_zipper.pt 1 16
+bun_zipper.pt 2 1
+bun_zipper.pt 2 2
+bun_zipper.pt 2 4
+bun_zipper.pt 2 8
+bun_zipper.pt 2 16
+bun_zipper.pt 4 1
+bun_zipper.pt 4 2
+bun_zipper.pt 4 4
+bun_zipper.pt 4 8
+bun_zipper.pt 4 16
+bun_zipper.pt 8 1
+bun_zipper.pt 8 2
+bun_zipper.pt 8 4
+bun_zipper.pt 8 8
+bun_zipper.pt 8 16
+dragon_vrip.pt 1 1
+dragon_vrip.pt 1 2
+dragon_vrip.pt 1 4
+dragon_vrip.pt 1 8
+dragon_vrip.pt 1 16
+dragon_vrip.pt 2 1
+dragon_vrip.pt 2 2
+dragon_vrip.pt 2 4
+dragon_vrip.pt 2 8
+dragon_vrip.pt 2 16
+dragon_vrip.pt 4 1
+dragon_vrip.pt 4 2
+dragon_vrip.pt 4 4
+dragon_vrip.pt 4 8
+dragon_vrip.pt 4 16
+dragon_vrip.pt 8 1
+dragon_vrip.pt 8 2
+dragon_vrip.pt 8 4
+dragon_vrip.pt 8 8
+dragon_vrip.pt 8 16
+happy_vrip.pt 1 1
+happy_vrip.pt 1 2
+happy_vrip.pt 1 4
+happy_vrip.pt 1 8
+happy_vrip.pt 1 16
+happy_vrip.pt 2 1
+happy_vrip.pt 2 2
+happy_vrip.pt 2 4
+happy_vrip.pt 2 8
+happy_vrip.pt 2 16
+happy_vrip.pt 4 1
+happy_vrip.pt 4 2
+happy_vrip.pt 4 4
+happy_vrip.pt 4 8
+happy_vrip.pt 4 16
+happy_vrip.pt 8 1
+happy_vrip.pt 8 2
+happy_vrip.pt 8 4
+happy_vrip.pt 8 8
+happy_vrip.pt 8 16
+random_10000.pt 1 1
+random_10000.pt 1 2
+random_10000.pt 1 4
+random_10000.pt 1 8
+random_10000.pt 1 16
+random_10000.pt 2 1
+random_10000.pt 2 2
+random_10000.pt 2 4
+random_10000.pt 2 8
+random_10000.pt 2 16
+random_10000.pt 4 1
+random_10000.pt 4 2
+random_10000.pt 4 4
+random_10000.pt 4 8
+random_10000.pt 4 16
+random_10000.pt 8 1
+random_10000.pt 8 2
+random_10000.pt 8 4
+random_10000.pt 8 8
+random_10000.pt 8 16
+random_100000.pt 1 1
+random_100000.pt 1 2
+random_100000.pt 1 4
+random_100000.pt 1 8
+random_100000.pt 1 16
+random_100000.pt 2 1
+random_100000.pt 2 2
+random_100000.pt 2 4
+random_100000.pt 2 8
+random_100000.pt 2 16
+random_100000.pt 4 1
+random_100000.pt 4 2
+random_100000.pt 4 4
+random_100000.pt 4 8
+random_100000.pt 4 16
+random_100000.pt 8 1
+random_100000.pt 8 2
+random_100000.pt 8 4
+random_100000.pt 8 8
+random_100000.pt 8 16
+random_1000000.pt 1 1
+random_1000000.pt 1 2
+random_1000000.pt 1 4
+random_1000000.pt 1 8
+random_1000000.pt 1 16
+random_1000000.pt 2 1
+random_1000000.pt 2 2
+random_1000000.pt 2 4
+random_1000000.pt 2 8
+random_1000000.pt 2 16
+random_1000000.pt 4 1
+random_1000000.pt 4 2
+random_1000000.pt 4 4
+random_1000000.pt 4 8
+random_1000000.pt 4 16
+random_1000000.pt 8 1
+random_1000000.pt 8 2
+random_1000000.pt 8 4
+random_1000000.pt 8 8
+random_1000000.pt 8 16
+Benchmark                        Avg Time(μs)      Peak Time(μs) Iterations
+--------------------------------------------------------------------------------
+knn_Armadillo.pt_1_1                144199          144746              5
+knn_Armadillo.pt_1_2                158375          159287              5
+knn_Armadillo.pt_1_4                160552          161666              5
+knn_Armadillo.pt_1_8                172455          173492              5
+knn_Armadillo.pt_1_16               168046          168757              5
+knn_Armadillo.pt_2_1                320806          324389              5
+knn_Armadillo.pt_2_2                322504          326287              5
+knn_Armadillo.pt_2_4                336322          354314              5
+knn_Armadillo.pt_2_8                381450          388987              5
+knn_Armadillo.pt_2_16               367392          370902              5
+knn_Armadillo.pt_4_1                594460          595103              5
+knn_Armadillo.pt_4_2                652613          655734              5
+knn_Armadillo.pt_4_4                669031          671540              5
+knn_Armadillo.pt_4_8                726259          731048              5
+knn_Armadillo.pt_4_16               691882          694988              5
+knn_Armadillo.pt_8_1               1226781         1230130              5
+knn_Armadillo.pt_8_2               1326184         1331929              5
+knn_Armadillo.pt_8_4               1373234         1378186              5
+knn_Armadillo.pt_8_8               1481062         1483781              5
+knn_Armadillo.pt_8_16              1418872         1430778              5
+knn_bun_zipper.pt_1_1                 8386            8416              5
+knn_bun_zipper.pt_1_2                 9251            9260              5
+knn_bun_zipper.pt_1_4                 9535            9539              5
+knn_bun_zipper.pt_1_8                 9976           10041              5
+knn_bun_zipper.pt_1_16               10283           10324              5
+knn_bun_zipper.pt_2_1                13347           13354              5
+knn_bun_zipper.pt_2_2                15063           15105              5
+knn_bun_zipper.pt_2_4                15366           15382              5
+knn_bun_zipper.pt_2_8                16313           16353              5
+knn_bun_zipper.pt_2_16               17177           17345              5
+knn_bun_zipper.pt_4_1                26608           26620              5
+knn_bun_zipper.pt_4_2                32740           32844              5
+knn_bun_zipper.pt_4_4                30937           30952              5
+knn_bun_zipper.pt_4_8                33086           33417              5
+knn_bun_zipper.pt_4_16               33802           34200              5
+knn_bun_zipper.pt_8_1                56803           57484              5
+knn_bun_zipper.pt_8_2                59201           59514              5
+knn_bun_zipper.pt_8_4                61279           61523              5
+knn_bun_zipper.pt_8_8                65343           66046              5
+knn_bun_zipper.pt_8_16               66895           69133              5
+knn_dragon_vrip.pt_1_1              969193          972840              5
+knn_dragon_vrip.pt_1_2             1040959         1050606              5
+knn_dragon_vrip.pt_1_4             1068226         1080213              5
+knn_dragon_vrip.pt_1_8             1156413         1170749              5
+knn_dragon_vrip.pt_1_16            1099465         1103089              5
+knn_dragon_vrip.pt_2_1             2021858         2042196              5
+knn_dragon_vrip.pt_2_2             2121134         2130098              5
+knn_dragon_vrip.pt_2_4             2215200         2220360              5
+knn_dragon_vrip.pt_2_8             2358941         2366469              5
+knn_dragon_vrip.pt_2_16            2248969         2257364              5
+knn_dragon_vrip.pt_4_1             3993613         4023842              5
+knn_dragon_vrip.pt_4_2             4329151         4340251              5
+knn_dragon_vrip.pt_4_4             4492112         4507462              5
+knn_dragon_vrip.pt_4_8             4766573         4786239              5
+knn_dragon_vrip.pt_4_16            4542815         4566765              5
+knn_dragon_vrip.pt_8_1             8148457         8294594              5
+knn_dragon_vrip.pt_8_2             8818043         8860719              5
+knn_dragon_vrip.pt_8_4             9196638         9230723              5
+knn_dragon_vrip.pt_8_8             9705685         9743887              5
+knn_dragon_vrip.pt_8_16            9244485         9278905              5
+knn_happy_vrip.pt_1_1              1569750         1621903              5
+knn_happy_vrip.pt_1_2              1651359         1659140              5
+knn_happy_vrip.pt_1_4              1704537         1714482              5
+knn_happy_vrip.pt_1_8              1926447         1962820              5
+knn_happy_vrip.pt_1_16             1696609         1711820              5
+knn_happy_vrip.pt_2_1              3063439         3098307              5
+knn_happy_vrip.pt_2_2              3323205         3331479              5
+knn_happy_vrip.pt_2_4              3437476         3441065              5
+knn_happy_vrip.pt_2_8              3668234         3693155              5
+knn_happy_vrip.pt_2_16             3435659         3448314              5
+knn_happy_vrip.pt_4_1              6237589         6275701              5
+knn_happy_vrip.pt_4_2              6767026         6790239              5
+knn_happy_vrip.pt_4_4              6949619         6968648              5
+knn_happy_vrip.pt_4_8              7443853         7504799              5
+knn_happy_vrip.pt_4_16             6915490         6936130              5
+knn_happy_vrip.pt_8_1             12443380        12504835              5
+knn_happy_vrip.pt_8_2             13613515        13643449              5
+knn_happy_vrip.pt_8_4             14145816        14183877              5
+knn_happy_vrip.pt_8_8             14978312        15057986              5
+knn_happy_vrip.pt_8_16            14021676        14080994              5
+knn_random_10000.pt_1_1               1426            1428              5
+knn_random_10000.pt_1_2               1480            1483              5
+knn_random_10000.pt_1_4               1583            1624              5
+knn_random_10000.pt_1_8               1682            1700              5
+knn_random_10000.pt_1_16              1954            1983              5
+knn_random_10000.pt_2_1               1408            1409              5
+knn_random_10000.pt_2_2               1530            1554              5
+knn_random_10000.pt_2_4               1650            1654              5
+knn_random_10000.pt_2_8               1962            1964              5
+knn_random_10000.pt_2_16              2327            2337              5
+knn_random_10000.pt_4_1               2314            2317              5
+knn_random_10000.pt_4_2               2870            2872              5
+knn_random_10000.pt_4_4               3053            3055              5
+knn_random_10000.pt_4_8               3362            3373              5
+knn_random_10000.pt_4_16              5448            5492              5
+knn_random_10000.pt_8_1               4033            4048              5
+knn_random_10000.pt_8_2               5043            5047              5
+knn_random_10000.pt_8_4               5382            5384              5
+knn_random_10000.pt_8_8               6008            6053              5
+knn_random_10000.pt_8_16              9937            9985              5
+knn_random_100000.pt_1_1             50536           50610              5
+knn_random_100000.pt_1_2             55511           55735              5
+knn_random_100000.pt_1_4             56615           56765              5
+knn_random_100000.pt_1_8             61327           61693              5
+knn_random_100000.pt_1_16            56854           57176              5
+knn_random_100000.pt_2_1            100226          101790              5
+knn_random_100000.pt_2_2            105290          105465              5
+knn_random_100000.pt_2_4            109286          111581              5
+knn_random_100000.pt_2_8            119346          120329              5
+knn_random_100000.pt_2_16           117727          118628              5
+knn_random_100000.pt_4_1            205192          205502              5
+knn_random_100000.pt_4_2            218079          218547              5
+knn_random_100000.pt_4_4            226063          233233              5
+knn_random_100000.pt_4_8            242341          243383              5
+knn_random_100000.pt_4_16           238016          241452              5
+knn_random_100000.pt_8_1            407743          412191              5
+knn_random_100000.pt_8_2            436751          437968              5
+knn_random_100000.pt_8_4            447709          450995              5
+knn_random_100000.pt_8_8            494948          498706              5
+knn_random_100000.pt_8_16           489818          492238              5
+knn_random_1000000.pt_1_1          5274577         5295064              5
+knn_random_1000000.pt_1_2          5470507         5513052              5
+knn_random_1000000.pt_1_4          5561120         5603462              5
+knn_random_1000000.pt_1_8          6082780         6124248              5
+knn_random_1000000.pt_1_16         5683744         5707720              5
+knn_random_1000000.pt_2_1         10519914        10607915              5
+knn_random_1000000.pt_2_2         10981219        11024187              5
+knn_random_1000000.pt_2_4         11130253        11189878              5
+knn_random_1000000.pt_2_8         12207596        12304186              5
+knn_random_1000000.pt_2_16        11443924        11498289              5
+knn_random_1000000.pt_4_1         21135140        21347532              5
+knn_random_1000000.pt_4_2         22051315        22110048              5
+knn_random_1000000.pt_4_4         22368838        22425775              5
+knn_random_1000000.pt_4_8         24664250        24807203              5
+knn_random_1000000.pt_4_16        22941633        23033598              5
+knn_random_1000000.pt_8_1         42506034        42718083              5
+knn_random_1000000.pt_8_2         44445699        44667603              5
+knn_random_1000000.pt_8_4         44809651        44894550              5
+knn_random_1000000.pt_8_8         49528246        49578630              5
+knn_random_1000000.pt_8_16        46455227        46702483              5
+--------------------------------------------------------------------------------
