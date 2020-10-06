@@ -235,9 +235,13 @@ class TestFRNN(unittest.TestCase):
 
 if __name__ == "__main__":
   fnames = sorted(glob.glob('data/mesh/*.ply') + glob.glob('data/mesh/*/*.ply'))
+  print(fnames)
   # fnames = ['data/mesh/lucy.ply']
   # fnames = ['data/mesh/drill/drill_shaft_zip.ply'] + fnames
-  save_intermediate_results(fnames)
-  # for fname in fnames:
-  #   pc = torch.FloatTensor(read_ply(fname)[None, :, :3]).cuda()  # no need for normals
-  #   torch.save(pc, "data/pc/"+fname.split('/')[-1][:-4]+'.pt')
+  # save_intermediate_results(fnames)
+  for fname in fnames:
+    pc = torch.FloatTensor(read_ply(fname)[None, :, :3]).cuda()  # no need for normals
+    pc -= pc.min(dim=1)[0]
+    pc /= pc.max()
+    print(pc.min(dim=1)[0], pc.max(dim=1)[0])
+    torch.save(pc, "data/pc/"+fname.split('/')[-1][:-4]+'.pt')

@@ -21,6 +21,7 @@ class Compare(unittest.TestCase):
     print(fname, N, K)
     points1 = torch.load("data/pc/"+fname)
     points2 = torch.load("data/pc/"+fname)
+    print(points1.min(dim=1)[0], points1.max(dim=1)[0])
     if N > 1:
       points1 = points1.repeat(N, 1, 1)
       points2 = points2.repeat(N, 1, 1)
@@ -46,6 +47,7 @@ class Compare(unittest.TestCase):
     ragged = False
     points1 = torch.load("data/pc/"+fname)
     points2 = torch.load("data/pc/"+fname)
+    print(points1.min(dim=1)[0], points1.max(dim=1)[0])
     if N > 1:
       points1 = points1.repeat(N, 1, 1)
       points2 = points2.repeat(N, 1, 1)
