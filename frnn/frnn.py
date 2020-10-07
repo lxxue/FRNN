@@ -49,7 +49,7 @@ class _frnn_grid_points(Function):
         grid_max = points2[i, :lengths2[i]].max(dim=0)[0]
         grid_params_cuda[i, :3] = grid_min
         grid_size = grid_max - grid_min
-        cell_size = r
+        cell_size = r / 2.0
         if cell_size < grid_size.min()/MAX_RES:
           cell_size = grid_size.min() / MAX_RES
         grid_params_cuda[i, 3] = 1 / cell_size

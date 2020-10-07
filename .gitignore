@@ -4,3 +4,4 @@ build/
 .vscode/
 data/
 **/__pycache__/
+all_data/
