@@ -49,5 +49,5 @@ def bm_frnn_ratio(fnames):
 
 
 if __name__ == "__main__":
-  fnames = glob.glob('data/pc/*.pt')
+  fnames = sorted(glob.glob('data/pc/*.pt'))
   bm_frnn_ratio(fnames)
