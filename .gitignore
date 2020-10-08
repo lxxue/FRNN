@@ -6,3 +6,4 @@ data/
 all_data/
 **/__pycache__/
 .vscode/
+drill/
