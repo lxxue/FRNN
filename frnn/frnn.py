@@ -190,6 +190,7 @@ def frnn_grid_points(
     return_nn: If set to True returns the nearest neighbors in points2 for each point in points1.
     return_sorted: (bool) whether to return the nearest neighbors sorted in ascending order of distance. 
                    For now this function always return sorted nn no matter the value of this flag.
+    radius_cell_ratio: A hyperparameter for grid cell size. Users can just use the defualt value 2.
 
     Returns:
       dists: Tensor of shape (N, P1, K) giving the squared distances to
