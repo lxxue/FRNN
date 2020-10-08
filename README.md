@@ -17,7 +17,7 @@ python setup.py install
 
 ## Usage
 For fixed nearest neighbors search:
-[doc]()
+[doc](https://github.com/lxxue/FRNN/blob/59a4c8fdc786c64afd991919af39f1a65d4ec2ff/frnn/frnn.py#L154-L224)
 ```
   # first time there is no cached grid
   dists, idxs, nn, grid = frnn.frnn_grid_points(
@@ -29,7 +29,7 @@ For fixed nearest neighbors search:
   )
 ```
 For manually gather nearest neighbors from idxs generated via frnn_grid_points:
-[doc]()
+[doc](https://github.com/lxxue/FRNN/blob/59a4c8fdc786c64afd991919af39f1a65d4ec2ff/frnn/frnn.py#L268-L292)
 ```
   nn = frnn(points2, idxs, lengths2)
 ```
