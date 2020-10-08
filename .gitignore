@@ -2,7 +2,7 @@ build/
 *.so
 *.egg-info/
 .vscode/
-data/
+data/mesh/
 all_data/
 **/__pycache__/
 .vscode/
