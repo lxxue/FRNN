@@ -34,6 +34,9 @@ For manually gather nearest neighbors from idxs generated via frnn_grid_points:
   nn = frnn(points2, idxs, lengths2)
 ```
 
+## Note
+For now this function only supports D=3 (point clouds) and K <= 32. Would add more supports for arbitrary D & K in the near future.
+
 ## Acknowledgement
 
 The code is build on the [algorithm](https://on-demand.gputechconf.com/gtc/2014/presentations/S4117-fast-fixed-radius-nearest-neighbor-gpu.pdf) introduced by Rama C. Hoetzlein. I use the [parallel prefix_sum](https://github.com/ramakarl/fluids3/blob/master/fluids/prefix_sum.cu) routines from [Fliud v3](http://www.fluids3.com/). I also learn(copy&paste) a lot from [Pytorch3D's KNN](https://github.com/facebookresearch/pytorch3d/blob/master/pytorch3d/csrc/knn/knn.cu) implementations.
