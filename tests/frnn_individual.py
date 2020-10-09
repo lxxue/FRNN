@@ -190,7 +190,7 @@ class TestFRNN(unittest.TestCase):
   @staticmethod
   def frnn_find_nbrs(N, fname, K):
     # print(N, fname, K)
-    r = 0.1
+    r = 0.1*torch.ones((N,), dtype=torch.float32, device=torch.device("cuda:0"))
     ragged = False
     
     sorted_points1 = torch.load("data/sorted_points1/"+fname) 
@@ -226,7 +226,8 @@ class TestFRNN(unittest.TestCase):
         sorted_points2_idxs,
         grid_params_cuda,
         K,
-        r
+        r,
+        r*r,
       )
       torch.cuda.synchronize()
     

@@ -31,7 +31,7 @@ For fixed nearest neighbors search:
 For manually gather nearest neighbors from idxs generated via frnn_grid_points:
 [doc](https://github.com/lxxue/FRNN/blob/59a4c8fdc786c64afd991919af39f1a65d4ec2ff/frnn/frnn.py#L268-L292)
 ```
-  nn = frnn(points2, idxs, lengths2)
+  nn = frnn.frnn_gather(points2, idxs, lengths2)
 ```
 
 ## Note

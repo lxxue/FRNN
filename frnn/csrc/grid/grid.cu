@@ -162,12 +162,12 @@ __global__ void FindNbrsKernel(
     int P1,
     int P2,
     int G,
-    float r) {
+    const float* __restrict__ rs,
+    const float* __restrict__ r2s) {
   float min_dists[K];
   int min_idxs[K];
   float3 diff;
   float sqdist;
-  float r2 = r*r;
   
   int chunks_per_cloud = (1 + (P1 - 1) / blockDim.x);
   int chunks_to_do = N * chunks_per_cloud;
@@ -194,6 +194,8 @@ __global__ void FindNbrsKernel(
     //   printf("n: %d, p1: %d\n", n, p1);
     // }
     float3 cur_point;
+    float cur_r = rs[n];
+    float cur_r2 = r2s[n];
     cur_point.x = points1[n*P1*3 + p1*3];
     cur_point.y = points1[n*P1*3 + p1*3 + 1];
     cur_point.z = points1[n*P1*3 + p1*3 + 2];
@@ -208,12 +210,12 @@ __global__ void FindNbrsKernel(
     int grid_res_z = params[n*GRID_PARAMS_SIZE+GRID_RES_Z];
     int grid_total = params[n*GRID_PARAMS_SIZE+GRID_TOTAL];
 
-    int min_gc_x = (int) std::floor((cur_point.x-grid_min_x-r) * grid_delta);
-    int min_gc_y = (int) std::floor((cur_point.y-grid_min_y-r) * grid_delta);
-    int min_gc_z = (int) std::floor((cur_point.z-grid_min_z-r) * grid_delta);
-    int max_gc_x = (int) std::floor((cur_point.x-grid_min_x+r) * grid_delta);
-    int max_gc_y = (int) std::floor((cur_point.y-grid_min_y+r) * grid_delta);
-    int max_gc_z = (int) std::floor((cur_point.z-grid_min_z+r) * grid_delta);
+    int min_gc_x = (int) std::floor((cur_point.x-grid_min_x-cur_r) * grid_delta);
+    int min_gc_y = (int) std::floor((cur_point.y-grid_min_y-cur_r) * grid_delta);
+    int min_gc_z = (int) std::floor((cur_point.z-grid_min_z-cur_r) * grid_delta);
+    int max_gc_x = (int) std::floor((cur_point.x-grid_min_x+cur_r) * grid_delta);
+    int max_gc_y = (int) std::floor((cur_point.y-grid_min_y+cur_r) * grid_delta);
+    int max_gc_z = (int) std::floor((cur_point.z-grid_min_z+cur_r) * grid_delta);
     MinK<float, int> mink(min_dists, min_idxs, K);
     // for (int x=std::max(min_gc_x, 0); x<=std::min(max_gc_x, grid_res_x-1); ++x) {
     //   for (int y=std::max(min_gc_y, 0); y<=std::min(max_gc_y, grid_res_y-1); ++y) {
@@ -235,7 +237,7 @@ __global__ void FindNbrsKernel(
             diff.y = points2[n*P2*3 + p2*3 + 1] - cur_point.y;
             diff.z = points2[n*P2*3 + p2*3 + 2] - cur_point.z;
             sqdist = diff.x*diff.x + diff.y*diff.y + diff.z*diff.z;
-            if (sqdist <= r2) {
+            if (sqdist <= cur_r2) {
               mink.add(sqdist, sorted_points2_idxs[n*P2+p2]);
             }
           }
@@ -276,12 +278,13 @@ struct FindNbrsKernelFunctor {
       int P1,
       int P2,
       int G,
-      float r) {
+      const float* rs,
+      const float* r2s) {
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     FindNbrsKernel<K><<<blocks, threads, 0, stream>>>(
       points1, points2, lengths1, lengths2, pc2_grid_off, 
       sorted_points1_idxs, sorted_points2_idxs, params,
-      dists, idxs, N, P1, P2, G, r);
+      dists, idxs, N, P1, P2, G, rs, r2s);
   }
 };
 
@@ -299,7 +302,9 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     const at::Tensor sorted_points2_idxs,
     const at::Tensor params,
     int K,
-    float r) {
+    const at::Tensor rs,
+    const at::Tensor r2s) {
+
   at::TensorArg points1_t{points1, "points1", 1};
   at::TensorArg points2_t{points2, "points2", 2};
   at::TensorArg lengths1_t{lengths1, "lengths1", 3};
@@ -308,11 +313,13 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   at::TensorArg sorted_points1_idxs_t{sorted_points1_idxs, "sorted_points1_idxs", 6};
   at::TensorArg sorted_points2_idxs_t{sorted_points2_idxs, "sorted_points2_idxs", 7};
   at::TensorArg params_t{params, "params", 8};
+  at::TensorArg rs_t{rs, "rs", 10};
+  at::TensorArg r2s_t{r2s, "r2s", 11};
 
   at::CheckedFrom c = "FindNbrsCUDA";
   at::checkAllSameGPU(c, {points1_t, points2_t, lengths1_t, lengths2_t, 
-    pc2_grid_off_t, sorted_points1_idxs_t, sorted_points2_idxs_t, params_t});
-  at::checkAllSameType(c, {points1_t, points2_t});
+    pc2_grid_off_t, sorted_points1_idxs_t, sorted_points2_idxs_t, params_t, rs_t, r2s_t});
+  at::checkAllSameType(c, {points1_t, points2_t, params_t, rs_t, r2s_t});
   at::checkAllSameType(c, {lengths1_t, lengths2_t});
   at::checkAllSameType(c, {pc2_grid_off_t, sorted_points1_idxs_t, sorted_points2_idxs_t});
   at::cuda::CUDAGuard device_guard(points1.device());
@@ -347,7 +354,8 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     P1,
     P2,
     G,
-    r
+    rs.data_ptr<float>(),
+    r2s.data_ptr<float>()
   );
 
   return std::make_tuple(idxs, dists);

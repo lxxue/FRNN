@@ -26,7 +26,7 @@ class _frnn_grid_points(Function):
       lengths1, 
       lengths2, 
       K: int,
-      r: float,
+      r: torch.Tensor,
       sorted_points2 = None,
       pc2_grid_off = None,
       sorted_points2_idxs = None,
@@ -50,7 +50,7 @@ class _frnn_grid_points(Function):
         grid_max = points2[i, :lengths2[i]].max(dim=0)[0]
         grid_params_cuda[i, :3] = grid_min
         grid_size = grid_max - grid_min
-        cell_size = r / radius_cell_ratio
+        cell_size = r[i].item() / radius_cell_ratio
         if cell_size < grid_size.min()/MAX_RES:
           cell_size = grid_size.min() / MAX_RES
         grid_params_cuda[i, 3] = 1 / cell_size
@@ -58,6 +58,7 @@ class _frnn_grid_points(Function):
         grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
         if G < grid_params_cuda[i, 7]:
           G = int(grid_params_cuda[i, 7].item())
+        # print(grid_params_cuda[i])
 
       # insert points into the grid
       P2 = points2.shape[1]
@@ -119,7 +120,8 @@ class _frnn_grid_points(Function):
       sorted_points2_idxs,
       grid_params_cuda,
       K,
-      r
+      r,
+      r*r
     )
     
     # TODO: compare which is faster: sort here or inside kernel function
@@ -157,7 +159,7 @@ def frnn_grid_points(
   lengths1: Union[torch.Tensor, None] = None,
   lengths2: Union[torch.Tensor, None] = None,
   K: int = -1,
-  r: float = -1,
+  r: Union[float, torch.Tensor] = -1,
   grid: Union[_GRID, None] = None,
   return_nn: bool = False,
   # TODO: add non-sorted version?
@@ -182,7 +184,8 @@ def frnn_grid_points(
               length of each pointcloud in p2. Or None to indicate that every cloud has
               length P2.
     K: Integer giving the number of nearest neighbors to return.
-    r: Float giving the search radius for the query points 
+    r: Float or a Tensor of shape (1,) or (N,) giving the search radius for the query points.
+       If it is not a Tensor of shape(N,), then all point clouds in the batch will have the same search radius.
        (neighbors with distance > search radius would be discarded)
     grid: A tuple of tensors consisting of cached grid structure. 
           If the points2 have been used as reference points before,
@@ -240,6 +243,19 @@ def frnn_grid_points(
     lengths1 = torch.full((points1.shape[0],), P1, dtype=torch.long, device=points1.device)
   if lengths2 is None:
     lengths2 = torch.full((points2.shape[0],), P2, dtype=torch.long, device=points2.device)
+
+  N = points1.shape[0]
+  if isinstance(r, float):
+    r = torch.ones((N,), dtype=torch.float32) * r
+  if isinstance(r, torch.Tensor):
+    assert(len(r.shape) == 1 and (r.shape[0] == 1 or r.shape[0] == N))
+    if r.shape[0] == 1:
+      r = r * torch.ones((N,), dtype=r.dtype, device=r.device)
+  r = r.type(torch.float32)
+  if not r.is_cuda:
+    r = r.cuda()
+
+
 
   if grid is not None: 
     idxs, dists, sorted_points2, pc2_grid_off, sorted_points2_idxs, grid_params_cuda = _frnn_grid_points.apply(
