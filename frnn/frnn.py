@@ -8,6 +8,8 @@ from frnn import _C
 from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 
+from prefix_sum import prefix_sum_cuda
+
 _GRID = namedtuple("GRID", "sorted_points2 pc2_grid_off sorted_points2_idxs grid_params")
 
 GRID_PARAMS_SIZE = 8
@@ -58,7 +60,6 @@ class _frnn_grid_points(Function):
         grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
         if G < grid_params_cuda[i, 7]:
           G = int(grid_params_cuda[i, 7].item())
-        # print(grid_params_cuda[i])
 
       # insert points into the grid
       P2 = points2.shape[1]
@@ -67,9 +68,14 @@ class _frnn_grid_points(Function):
       pc2_grid_idx = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
       _C.insert_points_cuda(points2, lengths2, grid_params_cuda, pc2_grid_cnt, pc2_grid_cell, pc2_grid_idx, G)
 
-
       # compute the offset for each grid
-      pc2_grid_off = _C.prefix_sum_cuda(pc2_grid_cnt, grid_params_cuda.cpu())
+      # pc2_grid_off = _C.prefix_sum_cuda(pc2_grid_cnt, grid_params_cuda.cpu())
+
+      # use prefix_sum from Matt Dean
+      grid_params = grid_params_cuda.cpu()
+      pc2_grid_off = torch.full((N, G), -1, dtype=torch.int, device=points1.device)
+      for i in range(N):
+        prefix_sum_cuda(pc2_grid_cnt[i], grid_params[i, 7], pc2_grid_off[i])
 
       # sort points according to their grid positions and insertion orders
       sorted_points2 = torch.zeros((N, P2, 3), dtype=torch.float, device=points1.device)
@@ -95,7 +101,10 @@ class _frnn_grid_points(Function):
     pc1_grid_idx = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)
     _C.insert_points_cuda(points1, lengths1, grid_params_cuda, pc1_grid_cnt, pc1_grid_cell, pc1_grid_idx, G)
 
-    pc1_grid_off = _C.prefix_sum_cuda(pc1_grid_cnt, grid_params_cuda.cpu())
+    # pc1_grid_off = _C.prefix_sum_cuda(pc1_grid_cnt, grid_params_cuda.cpu())
+    pc1_grid_off = torch.full((N, G), -1, dtype=torch.int, device=points1.device)
+    for i in range(N):
+      prefix_sum_cuda(pc1_grid_cnt[i], grid_params[i, 7], pc1_grid_off[i])
     
     sorted_points1 = torch.zeros((N, P1, 3), dtype=torch.float, device=points1.device)
     sorted_points1_idxs = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)

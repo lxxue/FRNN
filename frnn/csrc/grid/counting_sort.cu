@@ -28,6 +28,7 @@ __global__ void CountingSortKernel (
       printf("cell idx: %d; G: %d\n", cell_idx, G);
     assert(cell_idx < G);
     int sorted_idx = grid_off[n*G + cell_idx] + idx;
+    assert(sorted_idx >= 0 && sorted_idx < lengths[n]);
 
     sorted_points[n*P*3 + sorted_idx*3] = points[n*P*3 + p*3];
     sorted_points[n*P*3 + sorted_idx*3+1] = points[n*P*3 + p*3+1];
