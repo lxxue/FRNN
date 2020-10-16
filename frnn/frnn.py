@@ -73,7 +73,7 @@ class _frnn_grid_points(Function):
 
       # use prefix_sum from Matt Dean
       grid_params = grid_params_cuda.cpu()
-      pc2_grid_off = torch.full((N, G), -1, dtype=torch.int, device=points1.device)
+      pc2_grid_off = torch.full((N, G), 0, dtype=torch.int, device=points1.device)
       for i in range(N):
         prefix_sum_cuda(pc2_grid_cnt[i], grid_params[i, 7], pc2_grid_off[i])
 
@@ -102,7 +102,9 @@ class _frnn_grid_points(Function):
     _C.insert_points_cuda(points1, lengths1, grid_params_cuda, pc1_grid_cnt, pc1_grid_cell, pc1_grid_idx, G)
 
     # pc1_grid_off = _C.prefix_sum_cuda(pc1_grid_cnt, grid_params_cuda.cpu())
-    pc1_grid_off = torch.full((N, G), -1, dtype=torch.int, device=points1.device)
+    grid_params = grid_params_cuda.cpu()
+
+    pc1_grid_off = torch.full((N, G), 0, dtype=torch.int, device=points1.device)
     for i in range(N):
       prefix_sum_cuda(pc1_grid_cnt[i], grid_params[i, 7], pc1_grid_off[i])
     
