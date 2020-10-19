@@ -5,6 +5,9 @@ A Fixed Nearest Neighbors Search implemented on CUDA with similar interface as [
 
 ![Performance](./images/teaser.png)
 
+## Algorithm Walkthrough & Experiment Results
+[FRNN Presentation](./frnn_pre.pdf)
+
 ## Depenency
 Tested with cuda 10.2, python 3.8 and pytorch 1.6.0 on ubuntu 18.04.
 
@@ -43,6 +46,7 @@ For manually gather nearest neighbors from idxs generated via frnn_grid_points:
 
 ## Note
 For now this function only supports D=3 (point clouds) and K <= 32. Would add more supports for arbitrary D & K in the near future. For point clouds with fewer than 10,000 points, the speedup might not be that much.
+
 
 ## Acknowledgement
 
