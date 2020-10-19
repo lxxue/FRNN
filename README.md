@@ -14,7 +14,7 @@ Should be also fine other versions of cuda/python/pytorch.
 ```
 git clone --recursive https://github.com/lxxue/FRNN.git
 # install a prefix_sum routine first
-cd FRNN/externel/prefix_sum
+cd FRNN/external/prefix_sum
 python setup.py install
 
 # install FRNN
@@ -42,11 +42,11 @@ For manually gather nearest neighbors from idxs generated via frnn_grid_points:
 ```
 
 ## Note
-For now this function only supports D=3 (point clouds) and K <= 32. Would add more supports for arbitrary D & K in the near future.
+For now this function only supports D=3 (point clouds) and K <= 32. Would add more supports for arbitrary D & K in the near future. For point clouds with fewer than 10,000 points, the speedup might not be that much.
 
 ## Acknowledgement
 
-The code is build on the [algorithm](https://on-demand.gputechconf.com/gtc/2014/presentations/S4117-fast-fixed-radius-nearest-neighbor-gpu.pdf) introduced by Rama C. Hoetzlein. I use the [parallel prefix_sum](https://github.com/ramakarl/fluids3/blob/master/fluids/prefix_sum.cu) routines from [Fliud v3](http://www.fluids3.com/). I also learn(copy&paste) a lot from [Pytorch3D's KNN](https://github.com/facebookresearch/pytorch3d/blob/master/pytorch3d/csrc/knn/knn.cu) implementations.
+The code is build on the [algorithm](https://on-demand.gputechconf.com/gtc/2014/presentations/S4117-fast-fixed-radius-nearest-neighbor-gpu.pdf) introduced by Rama C. Hoetzlein. I use the [parallel prefix_sum](https://github.com/lxxue/prefix_sum) routines implemented by [mattdean1](https://github.com/mattdean1/cuda). I also learn (copy & paste) a lot from [Pytorch3D's KNN](https://github.com/facebookresearch/pytorch3d/blob/master/pytorch3d/csrc/knn/knn.cu) implementations.
 
 <!--
 ## TODO

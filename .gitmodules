@@ -1,3 +1,3 @@
-[submodule "externel/prefix_sum"]
-	path = externel/prefix_sum
+[submodule "external/prefix_sum"]
+	path = external/prefix_sum
 	url = https://github.com/lxxue/prefix_sum.git
