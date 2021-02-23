@@ -3,13 +3,11 @@
 
 #define GRID_MIN_X 0
 #define GRID_MIN_Y 1
-#define GRID_MIN_Z 2
-#define GRID_DELTA 3
-#define GRID_RES_X 4
-#define GRID_RES_Y 5
-#define GRID_RES_Z 6
-#define GRID_TOTAL 7
-#define GRID_PARAMS_SIZE 8
+#define GRID_DELTA 2
+#define GRID_RES_X 3
+#define GRID_RES_Y 4
+#define GRID_TOTAL 5
+#define GRID_PARAMS_SIZE 6
 
 #define MAX_RES 100
 // now use at::Tensor to store grid params
@@ -32,9 +30,9 @@ void SetupGridParams(
 
 // TODO: add docs
 void InsertPointsCUDA(
-    const at::Tensor points,    // (N, P, 3)
+    const at::Tensor points,    // (N, P, 2)
     const at::Tensor lengths,   // (N,)
-    const at::Tensor params,    // (N, 8)
+    const at::Tensor params,    // (N, 6)
     at::Tensor grid_cnt,        // (N, G)
     at::Tensor grid_cell,       // (N, P)      
     at::Tensor grid_idx,        // (N, P)

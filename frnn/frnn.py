@@ -12,8 +12,99 @@ from prefix_sum import prefix_sum_cuda
 
 _GRID = namedtuple("GRID", "sorted_points2 pc2_grid_off sorted_points2_idxs grid_params")
 
-GRID_PARAMS_SIZE = 8
+GRID_PARAMS_SIZE = 6
 MAX_RES = 100
+
+def _frnn_sort_points(
+  points1: torch.Tensor,
+  points2: torch.Tensor,
+  lengths1: Union[torch.Tensor, None] = None,
+  lengths2: Union[torch.Tensor, None] = None,
+  r: Union[float, torch.Tensor] = -1,
+  radius_cell_ratio: float = 2.0,
+):
+  if points1.shape[0] != points2.shape[0]:
+    raise ValueError("points1 and points2 must have the same batch  dimension")
+  if points1.shape[2] != 2 or points2.shape[2] != 2:
+    raise ValueError("for now only grid in 2D is supported")
+  if not points1.is_cuda or not points2.is_cuda:
+    raise TypeError("for now only cuda version is supported")
+
+  points1 = points1.contiguous()
+  points2 = points2.contiguous()
+
+  P1 = points1.shape[1]
+  P2 = points2.shape[1]
+
+  if lengths1 is None:
+    lengths1 = torch.full((points1.shape[0],), P1, dtype=torch.long, device=points1.device)
+  if lengths2 is None:
+    lengths2 = torch.full((points2.shape[0],), P2, dtype=torch.long, device=points2.device)
+
+  N = points1.shape[0]
+  if isinstance(r, float):
+    r = torch.ones((N,), dtype=torch.float32) * r
+  if isinstance(r, torch.Tensor):
+    assert(len(r.shape) == 1 and (r.shape[0] == 1 or r.shape[0] == N))
+    if r.shape[0] == 1:
+      r = r * torch.ones((N,), dtype=r.dtype, device=r.device)
+  r = r.type(torch.float32)
+  if not r.is_cuda:
+    r = r.cuda()
+
+  grid_params_cuda = torch.zeros((N, GRID_PARAMS_SIZE), dtype=torch.float, device=points1.device)
+  G = -1
+  for i in range(N):
+    # 0-1 grid_min; 2 grid_delta; 3-4 grid_res; 5 grid_total
+    grid_min = points2[i, :lengths2[i]].min(dim=0)[0]
+    grid_max = points2[i, :lengths2[i]].max(dim=0)[0]
+    grid_params_cuda[i, :2] = grid_min
+    grid_size = grid_max - grid_min
+    cell_size = r[i].item() / radius_cell_ratio
+    if cell_size < grid_size.min()/MAX_RES:
+      cell_size = grid_size.min() / MAX_RES
+    grid_params_cuda[i, 2] = 1 / cell_size
+    grid_params_cuda[i, 3:5] = torch.floor(grid_size / cell_size) + 1
+    grid_params_cuda[i, 5] = grid_params_cuda[i, 3] * grid_params_cuda[i, 4]
+    if G < grid_params_cuda[i, 5]:
+      G = int(grid_params_cuda[i, 5].item())
+  
+    # insert points into the grid
+  P2 = points2.shape[1]
+  pc2_grid_cnt = torch.zeros((N, G), dtype=torch.int, device=points1.device)
+  pc2_grid_cell = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+  pc2_grid_idx = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+  _C.insert_points_cuda(points2, lengths2, grid_params_cuda, pc2_grid_cnt, pc2_grid_cell, pc2_grid_idx, G)
+  # print(G)
+  # print(grid_params_cuda)
+  # print(pc2_grid_cnt)
+  # print(pc2_grid_cell[0])
+  # print(pc2_grid_idx[0])
+  # return 1,2,3,4
+
+  # compute the offset for each grid
+  # pc2_grid_off = _C.prefix_sum_cuda(pc2_grid_cnt, grid_params_cuda.cpu())
+
+  # use prefix_sum from Matt Dean
+  grid_params = grid_params_cuda.cpu()
+  pc2_grid_off = torch.full((N, G), 0, dtype=torch.int, device=points1.device)
+  for i in range(N):
+    prefix_sum_cuda(pc2_grid_cnt[i], grid_params[i, 5], pc2_grid_off[i])
+
+  # sort points according to their grid positions and insertion orders
+  sorted_points2 = torch.zeros((N, P2, 2), dtype=torch.float, device=points1.device)
+  sorted_points2_idxs = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
+  _C.counting_sort_cuda(
+    points2,
+    lengths2,
+    pc2_grid_cell,
+    pc2_grid_idx,
+    pc2_grid_off,
+    sorted_points2,
+    sorted_points2_idxs
+  )
+  return sorted_points2, sorted_points2_idxs, pc2_grid_off, grid_params
+
 
 class _frnn_grid_points(Function):
   """
@@ -47,19 +138,19 @@ class _frnn_grid_points(Function):
       grid_params_cuda = torch.zeros((N, GRID_PARAMS_SIZE), dtype=torch.float, device=points1.device)
       G = -1
       for i in range(N):
-        # 0-2 grid_min; 3 grid_delta; 4-6 grid_res; 7 grid_total
+        # 0-1 grid_min; 2 grid_delta; 3-4 grid_res; 5 grid_total
         grid_min = points2[i, :lengths2[i]].min(dim=0)[0]
         grid_max = points2[i, :lengths2[i]].max(dim=0)[0]
-        grid_params_cuda[i, :3] = grid_min
+        grid_params_cuda[i, :2] = grid_min
         grid_size = grid_max - grid_min
         cell_size = r[i].item() / radius_cell_ratio
         if cell_size < grid_size.min()/MAX_RES:
           cell_size = grid_size.min() / MAX_RES
-        grid_params_cuda[i, 3] = 1 / cell_size
-        grid_params_cuda[i, 4:7] = torch.floor(grid_size / cell_size) + 1
-        grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
-        if G < grid_params_cuda[i, 7]:
-          G = int(grid_params_cuda[i, 7].item())
+        grid_params_cuda[i, 2] = 1 / cell_size
+        grid_params_cuda[i, 3:5] = torch.floor(grid_size / cell_size) + 1
+        grid_params_cuda[i, 5] = grid_params_cuda[i, 3] * grid_params_cuda[i, 4]
+        if G < grid_params_cuda[i, 5]:
+          G = int(grid_params_cuda[i, 5].item())
 
       # insert points into the grid
       P2 = points2.shape[1]
@@ -78,7 +169,7 @@ class _frnn_grid_points(Function):
         prefix_sum_cuda(pc2_grid_cnt[i], grid_params[i, 7], pc2_grid_off[i])
 
       # sort points according to their grid positions and insertion orders
-      sorted_points2 = torch.zeros((N, P2, 3), dtype=torch.float, device=points1.device)
+      sorted_points2 = torch.zeros((N, P2, 2), dtype=torch.float, device=points1.device)
       sorted_points2_idxs = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
       _C.counting_sort_cuda(
         points2,
@@ -184,10 +275,10 @@ def frnn_grid_points(
   Fixed Radius nearest neighbors search on CUDA with uniform grid for point clouds
 
   Args:
-    points1: Tensor of shape (N, P1, 3) giving a batch of N point clouds,
-             each containing up to P1 points of dimension 3.
-    points2: Tensor of shape (N, P2, 3) giving a batch of N point clouds,
-             each containing up to P2 points of dimension 3.
+    points1: Tensor of shape (N, P1, 2) giving a batch of N 2D point clouds,
+             each containing up to P1 points of dimension 2.
+    points2: Tensor of shape (N, P2, 2) giving a batch of N 2D point clouds,
+             each containing up to P2 points of dimension 2.
     lengths1: LongTensor of shape (N,) of values in the range [0, P1], giving the
               length of each pointcloud in p1. Or None to indicate that every cloud has
               length P1.
@@ -217,7 +308,7 @@ def frnn_grid_points(
             in points2 has fewer than K points and where a cloud in points1 has fewer than P1
             points. Also, when a point has less than K neighbors inside the query ball
             defined by the search radius, it is also padded with -1
-      nn: Tensor of shape (N, P1, K, 3) giving the K nearest neighbors in points2 for
+      nn: Tensor of shape (N, P1, K, 2) giving the K nearest neighbors in points2 for
             each point in points1. Concretely, `nn[n, i, k]` gives the k-th nearest neighbor
             for `points1[n, i]`. Returned if `return_nn` is True.
             The nearest neighbors are collected using `frnn_gather`
@@ -239,8 +330,8 @@ def frnn_grid_points(
 
   if points1.shape[0] != points2.shape[0]:
     raise ValueError("points1 and points2 must have the same batch  dimension")
-  if points1.shape[2] != 3 or points2.shape[2] != 3:
-    raise ValueError("for now only grid in 3D is supported")
+  if points1.shape[2] != 2 or points2.shape[2] != 2:
+    raise ValueError("for now only grid in 2D is supported")
   if not points1.is_cuda or not points2.is_cuda:
     raise TypeError("for now only cuda version is supported")
 
@@ -278,7 +369,7 @@ def frnn_grid_points(
     )
 
   grid = _GRID(
-      sorted_points2=sorted_points2, # (N, P , 3) 
+      sorted_points2=sorted_points2, # (N, P , 2) 
       pc2_grid_off=pc2_grid_off,  # (N, G)
       sorted_points2_idxs=sorted_points2_idxs,  # (N, P)
       grid_params=grid_params_cuda) #(N, 8)
