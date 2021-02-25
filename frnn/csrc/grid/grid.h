@@ -1,17 +1,26 @@
 #pragma once
 #include "utils/cutil_math.h"
 
-#define GRID_MIN_X 0
-#define GRID_MIN_Y 1
-#define GRID_MIN_Z 2
-#define GRID_DELTA 3
-#define GRID_RES_X 4
-#define GRID_RES_Y 5
-#define GRID_RES_Z 6
-#define GRID_TOTAL 7
-#define GRID_PARAMS_SIZE 8
+#define GRID_3D_MIN_X 0
+#define GRID_3D_MIN_Y 1
+#define GRID_3D_MIN_Z 2
+#define GRID_3D_DELTA 3
+#define GRID_3D_RES_X 4
+#define GRID_3D_RES_Y 5
+#define GRID_3D_RES_Z 6
+#define GRID_3D_TOTAL 7
+#define GRID_3D_PARAMS_SIZE 8
+#define GRID_3D_MAX_RES 128
 
-#define MAX_RES 100
+#define GRID_2D_MIN_X 0
+#define GRID_2D_MIN_Y 1
+#define GRID_2D_DELTA 2
+#define GRID_2D_RES_X 3
+#define GRID_2D_RES_Y 4
+#define GRID_2D_TOTAL 5
+#define GRID_2D_PARAMS_SIZE 6
+#define GRID_2D_MAX_RES 1024
+
 // now use at::Tensor to store grid params
 // and we setup grid params in python
 // this struct and corresponding CPU function are now for validation only
@@ -32,9 +41,9 @@ void SetupGridParams(
 
 // TODO: add docs
 void InsertPointsCUDA(
-    const at::Tensor points,    // (N, P, 3)
+    const at::Tensor points,    // (N, P, 2/3)
     const at::Tensor lengths,   // (N,)
-    const at::Tensor params,    // (N, 8)
+    const at::Tensor params,    // (N, 6/8)
     at::Tensor grid_cnt,        // (N, G)
     at::Tensor grid_cell,       // (N, P)      
     at::Tensor grid_idx,        // (N, P)
@@ -56,7 +65,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCPU(
     const at::Tensor lengths,
     float r);
 
-
 // TODO: add docs
 std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     const at::Tensor points1,
@@ -72,8 +80,8 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
     const at::Tensor r2s);
  
 std::tuple<at::Tensor, at::Tensor> FindNbrsCPU(
-    const at::Tensor points1,          // (N, P1, 3)
-    const at::Tensor points2,          // (N, P2, 3)
+    const at::Tensor points1,          // (N, P1, 2/3)
+    const at::Tensor points2,          // (N, P2, 2/3)
     const at::Tensor lengths1,         // (N,)
     const at::Tensor lengths2,         // (N,)
     const at::Tensor grid_off,         // (N, G)

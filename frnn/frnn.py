@@ -11,10 +11,6 @@ from torch.autograd.function import once_differentiable
 from prefix_sum import prefix_sum_cuda
 
 _GRID = namedtuple("GRID", "sorted_points2 pc2_grid_off sorted_points2_idxs grid_params")
-
-GRID_PARAMS_SIZE = 8
-MAX_RES = 100
-
 class _frnn_grid_points(Function):
   """
   Torch autograd Function wrapper for FRNN CUDA implementation
@@ -41,25 +37,39 @@ class _frnn_grid_points(Function):
     """
     use_cached_grid = sorted_points2 is not None and pc2_grid_off is not None and sorted_points2_idxs is not None and grid_params_cuda is not None
     N = points1.shape[0]
+    D = points1.shape[2]
+    assert D == 2 or D == 3, "For now only 2D/3D is supported"
     if not use_cached_grid:
       # create grid from scratch
       # setup grid params
-      grid_params_cuda = torch.zeros((N, GRID_PARAMS_SIZE), dtype=torch.float, device=points1.device)
+      if D == 3:
+        # 0-2 grid_min; 3 grid_delta; 4-6 grid_res; 7 grid_total
+        grid_params_size = 8
+        grid_delta_idx = 3
+        grid_total_idx = 7
+        grid_max_res = 128
+      else:
+        # 0-1 grid_min; 2 grid_delta; 3-4 grid_res; 5 grid_total
+        grid_params_size = 6
+        grid_delta_idx = 2
+        grid_total_idx = 5
+        grid_max_res = 1024
+
+      grid_params_cuda = torch.zeros((N, grid_params_size), dtype=torch.float, device=points1.device)
       G = -1
       for i in range(N):
-        # 0-2 grid_min; 3 grid_delta; 4-6 grid_res; 7 grid_total
         grid_min = points2[i, :lengths2[i]].min(dim=0)[0]
         grid_max = points2[i, :lengths2[i]].max(dim=0)[0]
-        grid_params_cuda[i, :3] = grid_min
+        grid_params_cuda[i, :grid_delta_idx] = grid_min
         grid_size = grid_max - grid_min
         cell_size = r[i].item() / radius_cell_ratio
-        if cell_size < grid_size.min()/MAX_RES:
-          cell_size = grid_size.min() / MAX_RES
-        grid_params_cuda[i, 3] = 1 / cell_size
-        grid_params_cuda[i, 4:7] = torch.floor(grid_size / cell_size) + 1
-        grid_params_cuda[i, 7] = grid_params_cuda[i, 4] * grid_params_cuda[i, 5] * grid_params_cuda[i, 6] 
-        if G < grid_params_cuda[i, 7]:
-          G = int(grid_params_cuda[i, 7].item())
+        if cell_size < grid_size.min()/grid_max_res:
+          cell_size = grid_size.min() / grid_max_res
+        grid_params_cuda[i, grid_delta_idx] = 1 / cell_size
+        grid_params_cuda[i, grid_delta_idx+1:grid_total_idx] = torch.floor(grid_size / cell_size) + 1
+        grid_params_cuda[i, grid_total_idx] = torch.prod(grid_params_cuda[i, grid_delta_idx+1:grid_total_idx])
+        if G < grid_params_cuda[i, grid_total_idx]:
+          G = int(grid_params_cuda[i, grid_total_idx].item())
 
       # insert points into the grid
       P2 = points2.shape[1]
@@ -75,10 +85,10 @@ class _frnn_grid_points(Function):
       grid_params = grid_params_cuda.cpu()
       pc2_grid_off = torch.full((N, G), 0, dtype=torch.int, device=points1.device)
       for i in range(N):
-        prefix_sum_cuda(pc2_grid_cnt[i], grid_params[i, 7], pc2_grid_off[i])
+        prefix_sum_cuda(pc2_grid_cnt[i], grid_params[i, grid_total_idx], pc2_grid_off[i])
 
       # sort points according to their grid positions and insertion orders
-      sorted_points2 = torch.zeros((N, P2, 3), dtype=torch.float, device=points1.device)
+      sorted_points2 = torch.zeros_like(points2)
       sorted_points2_idxs = torch.full((N, P2), -1, dtype=torch.int, device=points1.device)
       _C.counting_sort_cuda(
         points2,
@@ -106,9 +116,9 @@ class _frnn_grid_points(Function):
 
     pc1_grid_off = torch.full((N, G), 0, dtype=torch.int, device=points1.device)
     for i in range(N):
-      prefix_sum_cuda(pc1_grid_cnt[i], grid_params[i, 7], pc1_grid_off[i])
+      prefix_sum_cuda(pc1_grid_cnt[i], grid_params[i, grid_total_idx], pc1_grid_off[i])
     
-    sorted_points1 = torch.zeros((N, P1, 3), dtype=torch.float, device=points1.device)
+    sorted_points1 = torch.zeros((N, P1, D), dtype=torch.float, device=points1.device)
     sorted_points1_idxs = torch.full((N, P1), -1, dtype=torch.int, device=points1.device)
     _C.counting_sort_cuda(
       points1,
@@ -184,10 +194,10 @@ def frnn_grid_points(
   Fixed Radius nearest neighbors search on CUDA with uniform grid for point clouds
 
   Args:
-    points1: Tensor of shape (N, P1, 3) giving a batch of N point clouds,
-             each containing up to P1 points of dimension 3.
-    points2: Tensor of shape (N, P2, 3) giving a batch of N point clouds,
-             each containing up to P2 points of dimension 3.
+    points1: Tensor of shape (N, P1, D) giving a batch of N point clouds,
+             each containing up to P1 points of dimension 2 or 3.
+    points2: Tensor of shape (N, P2, D) giving a batch of N point clouds,
+             each containing up to P2 points of dimension 2 or 3.
     lengths1: LongTensor of shape (N,) of values in the range [0, P1], giving the
               length of each pointcloud in p1. Or None to indicate that every cloud has
               length P1.
@@ -239,8 +249,10 @@ def frnn_grid_points(
 
   if points1.shape[0] != points2.shape[0]:
     raise ValueError("points1 and points2 must have the same batch  dimension")
-  if points1.shape[2] != 3 or points2.shape[2] != 3:
-    raise ValueError("for now only grid in 3D is supported")
+  if points1.shape[2] != points2.shape[2]:
+    raise ValueError(f"dimension mismatch: points1 of dimension {points1.shape[2]} while points2 of dimension {points2.shape[2]}")
+  if points1.shape[2] != 2 or points1.shape[2] != 3:
+    raise ValueError("for now only grid in 2D/3D is supported")
   if not points1.is_cuda or not points2.is_cuda:
     raise TypeError("for now only cuda version is supported")
 
@@ -266,8 +278,6 @@ def frnn_grid_points(
   if not r.is_cuda:
     r = r.cuda()
 
-
-
   if grid is not None: 
     idxs, dists, sorted_points2, pc2_grid_off, sorted_points2_idxs, grid_params_cuda = _frnn_grid_points.apply(
       points1, points2, lengths1, lengths2, K, r, grid[0], grid[1], grid[2], grid[3], return_sorted, radius_cell_ratio
@@ -278,10 +288,10 @@ def frnn_grid_points(
     )
 
   grid = _GRID(
-      sorted_points2=sorted_points2, # (N, P , 3) 
+      sorted_points2=sorted_points2, # (N, P, D) 
       pc2_grid_off=pc2_grid_off,  # (N, G)
       sorted_points2_idxs=sorted_points2_idxs,  # (N, P)
-      grid_params=grid_params_cuda) #(N, 8)
+      grid_params=grid_params_cuda) # (N, 6) or (N, 8)
 
   points2_nn = None
   if return_nn:
