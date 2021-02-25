@@ -5,7 +5,6 @@
 #include <tuple>
 
 #include "grid.h"
-#include "prefix_sum.h"
 #include "counting_sort.h"
 #include "utils/mink.cuh"
 // customized dispatch utils for our function type
@@ -264,8 +263,8 @@ __global__ void FindNbrs2DKernel(
           p2_end = pc2_grid_off[n*G+cell_idx+1]; 
         }
         for (int p2=p2_start; p2<p2_end; ++p2) {
-          diff.x = points2[n*P2*3 + p2*3] - cur_point.x;
-          diff.y = points2[n*P2*3 + p2*3 + 1] - cur_point.y;
+          diff.x = points2[n*P2*2 + p2*2] - cur_point.x;
+          diff.y = points2[n*P2*2 + p2*2 + 1] - cur_point.y;
           sqdist = diff.x*diff.x + diff.y*diff.y;
           if (sqdist <= cur_r2) {
             mink.add(sqdist, sorted_points2_idxs[n*P2+p2]);

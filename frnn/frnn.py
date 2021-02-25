@@ -39,22 +39,21 @@ class _frnn_grid_points(Function):
     N = points1.shape[0]
     D = points1.shape[2]
     assert D == 2 or D == 3, "For now only 2D/3D is supported"
+    # setup grid params
+    if D == 3:
+      # 0-2 grid_min; 3 grid_delta; 4-6 grid_res; 7 grid_total
+      grid_params_size = 8
+      grid_delta_idx = 3
+      grid_total_idx = 7
+      grid_max_res = 128
+    else:
+      # 0-1 grid_min; 2 grid_delta; 3-4 grid_res; 5 grid_total
+      grid_params_size = 6
+      grid_delta_idx = 2
+      grid_total_idx = 5
+      grid_max_res = 1024
     if not use_cached_grid:
       # create grid from scratch
-      # setup grid params
-      if D == 3:
-        # 0-2 grid_min; 3 grid_delta; 4-6 grid_res; 7 grid_total
-        grid_params_size = 8
-        grid_delta_idx = 3
-        grid_total_idx = 7
-        grid_max_res = 128
-      else:
-        # 0-1 grid_min; 2 grid_delta; 3-4 grid_res; 5 grid_total
-        grid_params_size = 6
-        grid_delta_idx = 2
-        grid_total_idx = 5
-        grid_max_res = 1024
-
       grid_params_cuda = torch.zeros((N, grid_params_size), dtype=torch.float, device=points1.device)
       G = -1
       for i in range(N):
@@ -70,7 +69,7 @@ class _frnn_grid_points(Function):
         grid_params_cuda[i, grid_total_idx] = torch.prod(grid_params_cuda[i, grid_delta_idx+1:grid_total_idx])
         if G < grid_params_cuda[i, grid_total_idx]:
           G = int(grid_params_cuda[i, grid_total_idx].item())
-
+        
       # insert points into the grid
       P2 = points2.shape[1]
       pc2_grid_cnt = torch.zeros((N, G), dtype=torch.int, device=points1.device)
@@ -250,8 +249,8 @@ def frnn_grid_points(
   if points1.shape[0] != points2.shape[0]:
     raise ValueError("points1 and points2 must have the same batch  dimension")
   if points1.shape[2] != points2.shape[2]:
-    raise ValueError(f"dimension mismatch: points1 of dimension {points1.shape[2]} while points2 of dimension {points2.shape[2]}")
-  if points1.shape[2] != 2 or points1.shape[2] != 3:
+    raise ValueError(f"dimension mismatch: points1 of dimension {points1.shape[2]} while points2 of dimension {points2.shape[2]}")    
+  if points1.shape[2] != 2 and points1.shape[2] != 3:
     raise ValueError("for now only grid in 2D/3D is supported")
   if not points1.is_cuda or not points2.is_cuda:
     raise TypeError("for now only cuda version is supported")
