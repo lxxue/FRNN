@@ -31,16 +31,15 @@
 //   float key_k = keys[k];
 //   int value_k = values[k];
 // }
-template <typename key_t, typename value_t>
-class MinK {
- public:
+template <typename key_t, typename value_t> class MinK {
+public:
   // Constructor.
   //
   // Arguments:
   //   keys: Array in which to store keys
   //   values: Array in which to store values
   //   K: How many values to keep track of
-  __device__ MinK(key_t* keys, value_t* vals, int K)
+  __device__ MinK(key_t *keys, value_t *vals, int K)
       : keys(keys), vals(vals), K(K), _size(0) {}
 
   // Try to add a new key and associated value to the data structure. If the key
@@ -53,7 +52,7 @@ class MinK {
   // Arguments:
   //   key: The key to add
   //   val: The value associated to the key
-  __device__ __forceinline__ void add(const key_t& key, const value_t& val) {
+  __device__ __forceinline__ void add(const key_t &key, const value_t &val) {
     if (_size < K) {
       keys[_size] = key;
       vals[_size] = val;
@@ -78,9 +77,7 @@ class MinK {
 
   // Get the number of items currently stored in the structure.
   // This takes O(1) time.
-  __device__ __forceinline__ int size() {
-    return _size;
-  }
+  __device__ __forceinline__ int size() { return _size; }
 
   // Sort the items stored in the structure using bubble sort.
   // This takes O(K^2) time.
@@ -99,9 +96,9 @@ class MinK {
     }
   }
 
- private:
-  key_t* keys;
-  value_t* vals;
+private:
+  key_t *keys;
+  value_t *vals;
   int K;
   int _size;
   key_t max_key;
@@ -117,13 +114,12 @@ class MinK {
 // We found that sorting via RegisterIndexUtils gave very poor performance,
 // and suspect it may have prevented the compiler from placing the arrays
 // into registers.
-template <typename key_t, typename value_t, int K>
-class RegisterMinK {
- public:
-  __device__ RegisterMinK(key_t* keys, value_t* vals)
+template <typename key_t, typename value_t, int K> class RegisterMinK {
+public:
+  __device__ RegisterMinK(key_t *keys, value_t *vals)
       : keys(keys), vals(vals), _size(0) {}
 
-  __device__ __forceinline__ void add(const key_t& key, const value_t& val) {
+  __device__ __forceinline__ void add(const key_t &key, const value_t &val) {
     if (_size < K) {
       RegisterIndexUtils<key_t, K>::set(keys, _size, key);
       RegisterIndexUtils<value_t, K>::set(vals, _size, val);
@@ -146,13 +142,11 @@ class RegisterMinK {
     }
   }
 
-  __device__ __forceinline__ int size() {
-    return _size;
-  }
+  __device__ __forceinline__ int size() { return _size; }
 
- private:
-  key_t* keys;
-  value_t* vals;
+private:
+  key_t *keys;
+  value_t *vals;
   int _size;
   key_t max_key;
   int max_idx;
