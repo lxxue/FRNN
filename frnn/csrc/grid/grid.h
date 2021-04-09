@@ -1,5 +1,6 @@
 #pragma once
 #include "utils/cutil_math.h"
+#include <ATen/ATen.h>
 
 #define GRID_3D_MIN_X 0
 #define GRID_3D_MIN_Y 1
