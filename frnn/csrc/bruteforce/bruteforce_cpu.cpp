@@ -2,9 +2,6 @@
 #include <torch/extension.h>
 #include <tuple>
 
-// fixed radius nearest neighbor search using brute force O(n^2) method
-// used as baseline & ground truth
-// based on pytorch3d KNearestNeighborIdxCpu
 std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCPU(const at::Tensor &p1,
                                                      const at::Tensor &p2,
                                                      const at::Tensor &lengths1,

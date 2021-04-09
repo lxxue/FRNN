@@ -2,16 +2,16 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
 
-__global__ void CountingSort2DKernel(
-    const float *__restrict__ points,     // (N, P, 2)
-    const long *__restrict__ lengths,     // (N,)
-    const int *__restrict__ grid_cell,    // (N, P)
-    const int *__restrict__ grid_idx,     // (N, P)
-    const int *__restrict__ grid_off,     // (N, G)
-    float *__restrict__ sorted_points,    // (N, P, 2)
-    int *__restrict__ sorted_points_idxs, // (N, P): sorted[n, i] = unsorted[n,
-                                          // idxs[i]]
-    int N, int P, int G) {
+__global__ void
+CountingSort2DKernel(const float *__restrict__ points,  // (N, P, 2)
+                     const long *__restrict__ lengths,  // (N,)
+                     const int *__restrict__ grid_cell, // (N, P)
+                     const int *__restrict__ grid_idx,  // (N, P)
+                     const int *__restrict__ grid_off,  // (N, G)
+                     float *__restrict__ sorted_points, // (N, P, 2)
+                     // sorted[n, i] = unsorted[n, idxs[i]]
+                     int *__restrict__ sorted_points_idxs, // (N, P)
+                     int N, int P, int G) {
   int chunks_per_cloud = (1 + (P - 1) / blockDim.x);
   int chunks_to_do = N * chunks_per_cloud;
   for (int chunk = blockIdx.x; chunk < chunks_to_do; chunk += gridDim.x) {
