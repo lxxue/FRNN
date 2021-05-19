@@ -9,17 +9,13 @@
 #include "utils/mink.cuh"
 
 template <typename scalar_t, int64_t D, int64_t K>
-__global__ void FRNNBruteForceKernel(
-    const scalar_t* __restrict__ points1,
-    const scalar_t* __restrict__ points2,
-    const int64_t* __restrict__ lengths1,
-    const int64_t* __restrict__ lengths2,
-    scalar_t* __restrict__ dists,
-    int64_t* __restrict__ idxs,
-    int N,
-    int P1,
-    int P2,
-    float r2) {
+__global__ void FRNNBruteForceKernel(const scalar_t *__restrict__ points1,
+                                     const scalar_t *__restrict__ points2,
+                                     const int64_t *__restrict__ lengths1,
+                                     const int64_t *__restrict__ lengths2,
+                                     scalar_t *__restrict__ dists,
+                                     int64_t *__restrict__ idxs, int N, int P1,
+                                     int P2, float r2) {
   scalar_t cur_point[D];
   scalar_t min_dists[K];
   int min_idxs[K];
@@ -43,7 +39,8 @@ __global__ void FRNNBruteForceKernel(
         scalar_t diff = cur_point[d] - points2[offset];
         dist += diff * diff;
       }
-      if (dist >= r2) continue;
+      if (dist >= r2)
+        continue;
       mink.add(dist, p2);
     }
     mink.sort();
@@ -59,19 +56,12 @@ __global__ void FRNNBruteForceKernel(
 // This is a shim so we can dispatch using DispatchKernel2D
 template <typename scalar_t, int64_t D, int64_t K>
 struct FRNNBruteForceFunctor {
-  static void run(
-      int blocks,
-      int threads,
-      const scalar_t* __restrict__ points1,
-      const scalar_t* __restrict__ points2,
-      const int64_t* __restrict__ lengths1,
-      const int64_t* __restrict__ lengths2,
-      scalar_t* __restrict__ dists,
-      int64_t* __restrict__ idxs,
-      int N,
-      int P1,
-      int P2,
-      float r2) {
+  static void run(int blocks, int threads, const scalar_t *__restrict__ points1,
+                  const scalar_t *__restrict__ points2,
+                  const int64_t *__restrict__ lengths1,
+                  const int64_t *__restrict__ lengths2,
+                  scalar_t *__restrict__ dists, int64_t *__restrict__ idxs,
+                  int N, int P1, int P2, float r2) {
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
     FRNNBruteForceKernel<scalar_t, D, K><<<blocks, threads, 0, stream>>>(
         points1, points2, lengths1, lengths2, dists, idxs, N, P1, P2, r2);
@@ -83,13 +73,10 @@ constexpr int V2_MAX_D = 8;
 constexpr int V2_MIN_K = 1;
 constexpr int V2_MAX_K = 32;
 
-std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
-    const at::Tensor& p1,
-    const at::Tensor& p2,
-    const at::Tensor& lengths1,
-    const at::Tensor& lengths2,
-    int K,
-    float r) {
+std::tuple<at::Tensor, at::Tensor>
+FRNNBruteForceCUDA(const at::Tensor &p1, const at::Tensor &p2,
+                   const at::Tensor &lengths1, const at::Tensor &lengths2,
+                   int K, float r) {
 
   // Check inputs are on the same device
   at::TensorArg p1_t{p1, "p1", 1}, p2_t{p2, "p2", 2},
@@ -120,33 +107,22 @@ std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
     return std::make_tuple(idxs, dists);
   }
 
-  AT_ASSERTM(D >= V2_MIN_D && D <= V2_MAX_D && K >= V2_MIN_K && D <= V2_MAX_K, "Invalid range for K or D");
+  AT_ASSERTM(D >= V2_MIN_D && D <= V2_MAX_D && K >= V2_MIN_K && D <= V2_MAX_K,
+             "Invalid range for K or D");
 
   int threads = 256;
   int blocks = 256;
-  AT_DISPATCH_FLOATING_TYPES(p1.scalar_type(), "frnn_kernel_cuda", ([&] {
-                               DispatchKernel2D<
-                                   FRNNBruteForceFunctor,
-                                   scalar_t,
-                                   V2_MIN_D,
-                                   V2_MAX_D,
-                                   V2_MIN_K,
-                                   V2_MAX_K>(
-                                   D,
-                                   K_64,
-                                   blocks,
-                                   threads,
-                                   p1.contiguous().data_ptr<scalar_t>(),
-                                   p2.contiguous().data_ptr<scalar_t>(),
-                                   lengths1.contiguous().data_ptr<int64_t>(),
-                                   lengths2.contiguous().data_ptr<int64_t>(),
-                                   dists.data_ptr<scalar_t>(),
-                                   idxs.data_ptr<int64_t>(),
-                                   N,
-                                   P1,
-                                   P2,
-                                   r2);
-                             }));
+  AT_DISPATCH_FLOATING_TYPES(
+      p1.scalar_type(), "frnn_kernel_cuda", ([&] {
+        DispatchKernel2D<FRNNBruteForceFunctor, scalar_t, V2_MIN_D, V2_MAX_D,
+                         V2_MIN_K, V2_MAX_K>(
+            D, K_64, blocks, threads, p1.contiguous().data_ptr<scalar_t>(),
+            p2.contiguous().data_ptr<scalar_t>(),
+            lengths1.contiguous().data_ptr<int64_t>(),
+            lengths2.contiguous().data_ptr<int64_t>(),
+            dists.data_ptr<scalar_t>(), idxs.data_ptr<int64_t>(), N, P1, P2,
+            r2);
+      }));
   AT_CUDA_CHECK(cudaGetLastError());
   return std::make_tuple(idxs, dists);
 }

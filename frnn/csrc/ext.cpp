@@ -1,9 +1,8 @@
-#include <torch/extension.h>
-#include "grid/grid.h"
-#include "grid/counting_sort.h"
-#include "bruteforce/bruteforce.h"
 #include "backward/backward.h"
-
+#include "bruteforce/bruteforce.h"
+#include "grid/counting_sort.h"
+#include "grid/grid.h"
+#include <torch/extension.h>
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("setup_grid_params", &SetupGridParams);
@@ -13,11 +12,11 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   m.def("counting_sort_cuda", &CountingSortCUDA);
   m.def("counting_sort_cpu", &CountingSortCPU);
-  
+
   m.def("find_nbrs_cuda", &FindNbrsCUDA);
   m.def("find_nbrs_cpu", &FindNbrsCPU);
   m.def("test_find_nbrs_cpu", &TestFindNbrsCPU);
-  
+
   m.def("frnn_bf_cuda", &FRNNBruteForceCUDA);
   m.def("frnn_bf_cpu", &FRNNBruteForceCPU);
 
