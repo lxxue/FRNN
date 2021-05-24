@@ -16,8 +16,8 @@ _GRID = namedtuple(
 
 class _frnn_grid_points(Function):
     """
-  Torch autograd Function wrapper for FRNN CUDA implementation
-  """
+    Torch autograd Function wrapper for FRNN CUDA implementation
+    """
 
     @staticmethod
     def forward(ctx,
@@ -34,8 +34,8 @@ class _frnn_grid_points(Function):
                 return_sorted: bool = True,
                 radius_cell_ratio: float = 2.0):
         """
-    TODO: add docs
-    """
+        TODO: add docs
+        """
         use_cached_grid = (sorted_points2 is not None and
                            pc2_grid_off is not None and
                            sorted_points2_idxs is not None and

@@ -1,7 +1,7 @@
 Point cloud,Num points,Different key percentage,Dists all close
 Armadillo.pt,172974,1.0000,True,1.0000,True
 bun_zipper.pt,35947,1.0000,True,1.0000,True
-dragon_vrip.pt,437645,0.9949,True,0.9949,True
+dragon_vrip.pt,437645,0.9948,True,0.9948,True
 happy_vrip.pt,543652,0.9996,True,0.9996,True
 random_10000.pt,10000,1.0000,True,1.0000,True
 random_100000.pt,100000,1.0000,True,1.0000,True

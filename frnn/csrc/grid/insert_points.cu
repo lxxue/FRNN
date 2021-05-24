@@ -124,9 +124,6 @@ struct InsertPointsNDKernelFunctor {
   }
 };
 
-constexpr int MIN_D = 3;
-constexpr int MAX_D = 16;
-
 void InsertPointsCUDA(const at::Tensor points,   // (N, P, D)
                       const at::Tensor lengths,  // (N,)
                       const at::Tensor params,   // (N, 6/8)

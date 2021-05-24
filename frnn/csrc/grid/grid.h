@@ -1,9 +1,7 @@
 #pragma once
-#include "utils/cutil_math.h"
 #include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
-
 
 #define GRID_3D_MIN_X 0
 #define GRID_3D_MIN_Y 1
@@ -24,6 +22,9 @@
 #define GRID_2D_TOTAL 5
 #define GRID_2D_PARAMS_SIZE 6
 #define GRID_2D_MAX_RES 1024
+
+constexpr int MIN_D = 3;
+constexpr int MAX_D = 16;
 
 // now use at::Tensor to store grid params
 // and we setup grid params in python
