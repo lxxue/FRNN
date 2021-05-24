@@ -285,8 +285,11 @@ def frnn_grid_points(
         raise ValueError(
             f"dimension mismatch: points1 of dimension {points1.shape[2]} while points2 of dimension {points2.shape[2]}"
         )
-    if points1.shape[2] != 2 and points1.shape[2] != 3:
-        raise ValueError("for now only grid in 2D/3D is supported")
+    # if points1.shape[2] != 2 and points1.shape[2] != 3:
+    #     raise ValueError("for now only grid in 2D/3D is supported")
+    if points1.shape[2] < 2 or points1.shape[2] > 16:
+        raise ValueError(
+            "for now only point clouds of dimension 2-16 is supported")
     if not points1.is_cuda or not points2.is_cuda:
         raise TypeError("for now only cuda version is supported")
 

@@ -1,8 +1,15 @@
-Point cloud,Num points,Different key percentage,Dists all close,Different key percentage reuse,Dists all close reuse,
-Armadillo.pt,172974,1.0000,False,1.0000,False
-bun_zipper.pt,35947,1.0000,False,1.0000,False
-dragon_vrip.pt,437645,0.9995,False,0.9995,False
-happy_vrip.pt,543652,0.9999,False,0.9999,False
-random_10000.pt,10000,1.0000,False,1.0000,False
-random_100000.pt,100000,1.0000,True,1.0000,True
-random_1000000.pt,1000000,1.0000,True,1.0000,True
+Dim,Different key percentage,Dists all close,Different key percentage reuse,Dists all close reuse
+3,True,1.0000000000000000,True,True,1.0000000000000000,True
+4,True,1.0000000000000000,False,True,1.0000000000000000,False
+5,True,1.0000000000000000,False,True,1.0000000000000000,False
+6,True,1.0000000000000000,False,True,1.0000000000000000,False
+7,True,1.0000000000000000,False,True,1.0000000000000000,False
+8,True,1.0000000000000000,False,True,1.0000000000000000,False
+9,True,1.0000000000000000,False,True,1.0000000000000000,False
+10,True,1.0000000000000000,False,True,1.0000000000000000,False
+11,True,1.0000000000000000,False,True,1.0000000000000000,False
+12,True,1.0000000000000000,False,True,1.0000000000000000,False
+13,True,1.0000000000000000,False,True,1.0000000000000000,False
+14,True,1.0000000000000000,False,True,1.0000000000000000,False
+15,True,1.0000000000000000,False,True,1.0000000000000000,False
+16,True,1.0000000000000000,False,True,1.0000000000000000,False

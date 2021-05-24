@@ -306,8 +306,8 @@ __global__ void FindNbrsNDKernel(
 template <int D, int K>
 struct FindNbrsKernelFunctor {
   static void run(int blocks, int threads,
-                  const float *__restrict__ points1,            // (N, P1, 2/3)
-                  const float *__restrict__ points2,            // (N, P2, 2/3)
+                  const float *__restrict__ points1,            // (N, P1, D)
+                  const float *__restrict__ points2,            // (N, P2, D)
                   const long *__restrict__ lengths1,            // (N,)
                   const long *__restrict__ lengths2,            // (N,)
                   const int *__restrict__ pc2_grid_off,         // (N, G)
