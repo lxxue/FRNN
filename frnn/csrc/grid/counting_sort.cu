@@ -32,6 +32,7 @@ __global__ void CountingSort2DKernel(
   }
 }
 
+/*
 __global__ void CountingSort3DKernel(
     const float *__restrict__ points,      // (N, P, 3)
     const long *__restrict__ lengths,      // (N,)
@@ -65,6 +66,7 @@ __global__ void CountingSort3DKernel(
     sorted_points_idxs[n * P + sorted_idx] = p;
   }
 }
+*/
 
 template <int D>
 __global__ void CountingSortNDKernel(

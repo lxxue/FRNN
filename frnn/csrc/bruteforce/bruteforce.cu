@@ -25,8 +25,7 @@ __global__ void FRNNBruteForceKernel(const scalar_t *__restrict__ points1,
     int n = chunk / chunks_per_cloud;
     int start_point = blockDim.x * (chunk % chunks_per_cloud);
     int p1 = start_point + threadIdx.x;
-    if (p1 >= lengths1[n])
-      continue;
+    if (p1 >= lengths1[n]) continue;
     for (int d = 0; d < D; ++d) {
       cur_point[d] = points1[n * P1 * D + p1 * D + d];
     }
@@ -39,8 +38,7 @@ __global__ void FRNNBruteForceKernel(const scalar_t *__restrict__ points1,
         scalar_t diff = cur_point[d] - points2[offset];
         dist += diff * diff;
       }
-      if (dist >= r2)
-        continue;
+      if (dist >= r2) continue;
       mink.add(dist, p2);
     }
     mink.sort();
@@ -73,11 +71,9 @@ constexpr int V2_MAX_D = 8;
 constexpr int V2_MIN_K = 1;
 constexpr int V2_MAX_K = 32;
 
-std::tuple<at::Tensor, at::Tensor>
-FRNNBruteForceCUDA(const at::Tensor &p1, const at::Tensor &p2,
-                   const at::Tensor &lengths1, const at::Tensor &lengths2,
-                   int K, float r) {
-
+std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
+    const at::Tensor &p1, const at::Tensor &p2, const at::Tensor &lengths1,
+    const at::Tensor &lengths2, int K, float r) {
   // Check inputs are on the same device
   at::TensorArg p1_t{p1, "p1", 1}, p2_t{p2, "p2", 2},
       lengths1_t{lengths1, "lengths1", 3}, lengths2_t{lengths2, "lengths2", 4};

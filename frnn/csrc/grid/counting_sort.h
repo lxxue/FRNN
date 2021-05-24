@@ -4,7 +4,7 @@
 #include <c10/cuda/CUDAGuard.h>
 
 #include "grid/grid.h"
-#include "utils/dispatch.cuh"
+#include "utils/dispatch.h"
 
 void CountingSortCUDA(const at::Tensor points, const at::Tensor lengths,
                       const at::Tensor grid_cell, const at::Tensor grid_idx,

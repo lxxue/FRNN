@@ -23,8 +23,13 @@
 #define GRID_2D_PARAMS_SIZE 6
 #define GRID_2D_MAX_RES 1024
 
+// TODO: figure out a suitable dimension of grid?
 constexpr int MIN_D = 3;
 constexpr int MAX_D = 16;
+
+// TODO: Optimize for large K
+constexpr int MIN_K = 1;
+constexpr int MAX_K = 32;
 
 // now use at::Tensor to store grid params
 // and we setup grid params in python

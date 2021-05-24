@@ -1,5 +1,4 @@
 #include "grid/insert_points.h"
-#include "utils/dispatch.h"
 
 __global__ void InsertPoints2DKernel(const float *__restrict__ points,
                                      const long *__restrict__ lengths,
