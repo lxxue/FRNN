@@ -1,4 +1,5 @@
-#include <grid.h>
+#include "grid/grid.h"
+
 // TODO: add docs
 void InsertPointsCUDA(const at::Tensor points,  // (N, P, 2/3)
                       const at::Tensor lengths, // (N,)

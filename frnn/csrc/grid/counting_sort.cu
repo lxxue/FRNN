@@ -2,24 +2,23 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/cuda/CUDAGuard.h>
 
-__global__ void
-CountingSort2DKernel(const float *__restrict__ points,  // (N, P, 2)
-                     const long *__restrict__ lengths,  // (N,)
-                     const int *__restrict__ grid_cell, // (N, P)
-                     const int *__restrict__ grid_idx,  // (N, P)
-                     const int *__restrict__ grid_off,  // (N, G)
-                     float *__restrict__ sorted_points, // (N, P, 2)
-                     // sorted[n, i] = unsorted[n, idxs[i]]
-                     int *__restrict__ sorted_points_idxs, // (N, P)
-                     int N, int P, int G) {
+__global__ void CountingSort2DKernel(
+    const float *__restrict__ points,   // (N, P, 2)
+    const long *__restrict__ lengths,   // (N,)
+    const int *__restrict__ grid_cell,  // (N, P)
+    const int *__restrict__ grid_idx,   // (N, P)
+    const int *__restrict__ grid_off,   // (N, G)
+    float *__restrict__ sorted_points,  // (N, P, 2)
+    // sorted[n, i] = unsorted[n, idxs[i]]
+    int *__restrict__ sorted_points_idxs,  // (N, P)
+    int N, int P, int G) {
   int chunks_per_cloud = (1 + (P - 1) / blockDim.x);
   int chunks_to_do = N * chunks_per_cloud;
   for (int chunk = blockIdx.x; chunk < chunks_to_do; chunk += gridDim.x) {
     int n = chunk / chunks_per_cloud;
     int start_point = blockDim.x * (chunk % chunks_per_cloud);
     int p = start_point + threadIdx.x;
-    if (p >= lengths[n])
-      continue;
+    if (p >= lengths[n]) continue;
 
     int cell_idx = grid_cell[n * P + p];
     int idx = grid_idx[n * P + p];
@@ -36,14 +35,14 @@ CountingSort2DKernel(const float *__restrict__ points,  // (N, P, 2)
 }
 
 __global__ void CountingSort3DKernel(
-    const float *__restrict__ points,     // (N, P, 3)
-    const long *__restrict__ lengths,     // (N,)
-    const int *__restrict__ grid_cell,    // (N, P)
-    const int *__restrict__ grid_idx,     // (N, P)
-    const int *__restrict__ grid_off,     // (N, G)
-    float *__restrict__ sorted_points,    // (N, P, 3)
-    int *__restrict__ sorted_points_idxs, // (N, P): sorted[n, i] = unsorted[n,
-                                          // idxs[i]]
+    const float *__restrict__ points,      // (N, P, 3)
+    const long *__restrict__ lengths,      // (N,)
+    const int *__restrict__ grid_cell,     // (N, P)
+    const int *__restrict__ grid_idx,      // (N, P)
+    const int *__restrict__ grid_off,      // (N, G)
+    float *__restrict__ sorted_points,     // (N, P, 3)
+    int *__restrict__ sorted_points_idxs,  // (N, P): sorted[n, i] = unsorted[n,
+                                           // idxs[i]]
     int N, int P, int G) {
   int chunks_per_cloud = (1 + (P - 1) / blockDim.x);
   int chunks_to_do = N * chunks_per_cloud;
@@ -51,8 +50,7 @@ __global__ void CountingSort3DKernel(
     int n = chunk / chunks_per_cloud;
     int start_point = blockDim.x * (chunk % chunks_per_cloud);
     int p = start_point + threadIdx.x;
-    if (p >= lengths[n])
-      continue;
+    if (p >= lengths[n]) continue;
 
     int cell_idx = grid_cell[n * P + p];
     int idx = grid_idx[n * P + p];
@@ -74,7 +72,6 @@ void CountingSortCUDA(const at::Tensor points, const at::Tensor lengths,
                       const at::Tensor grid_cell, const at::Tensor grid_idx,
                       const at::Tensor grid_off, at::Tensor sorted_points,
                       at::Tensor sorted_points_idxs) {
-
   at::TensorArg points_t{points, "points", 1};
   at::TensorArg lengths_t{lengths, "lengths", 2};
   at::TensorArg grid_cell_t{grid_cell, "grid_cell", 3};

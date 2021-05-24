@@ -1,4 +1,4 @@
-#include "insert_points.h"
+#include "grid/insert_points.h"
 
 int GetGridCell(float x, float y, float z, int3 &gc, GridParams &params) {
   gc.x = (int)((x - params.grid_min.x) * params.grid_delta);

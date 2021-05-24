@@ -1,11 +1,7 @@
-#include <ATen/ATen.h>
-#include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
-
 #include <tuple>
 
-#include "counting_sort.h"
-#include "grid.h"
+#include "grid/counting_sort.h"
+#include "grid/grid.h"
 #include "utils/mink.cuh"
 // customized dispatch utils for our function type
 #include "utils/dispatch.h"

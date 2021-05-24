@@ -5,9 +5,11 @@
 #include <queue>
 #include <tuple>
 
-#include "counting_sort.h"
-#include "grid.h"
-#include "prefix_sum.h"
+#include "grid/grid.h"
+#include "grid/insert_points.h"
+#include "grid/prefix_sum.h"
+#include "grid/counting_sort.h"
+#include "grid/find_nbrs.h"
 
 
 

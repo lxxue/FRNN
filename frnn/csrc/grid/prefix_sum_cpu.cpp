@@ -1,4 +1,5 @@
-#include "prefix_sum.h"
+#include "grid/prefix_sum.h"
+#include "grid/insert_points.h"
 #include <ATen/ATen.h>
 
 // a simple CPU prefix
