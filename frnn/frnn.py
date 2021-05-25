@@ -192,7 +192,8 @@ class _frnn_grid_points(Function):
         ctx.mark_non_differentiable(sorted_points2_idxs)
         ctx.mark_non_differentiable(grid_params_cuda)
 
-        return idxs, dists, sorted_points2, pc2_grid_off, sorted_points2_idxs, grid_params_cuda
+        return (idxs, dists, sorted_points2, pc2_grid_off, sorted_points2_idxs,
+                grid_params_cuda)
 
     @staticmethod
     @once_differentiable
@@ -202,7 +203,8 @@ class _frnn_grid_points(Function):
         points1, points2, lengths1, lengths2, idxs = ctx.saved_tensors
         grad_points1, grad_points2 = _C.frnn_backward_cuda(
             points1, points2, lengths1, lengths2, idxs, grad_dists)
-        return grad_points1, grad_points2, None, None, None, None, None, None, None, None, None, None, None
+        return (grad_points1, grad_points2, None, None, None, None, None, None,
+                None, None, None, None)
 
 
 def frnn_grid_points(
@@ -331,7 +333,7 @@ def frnn_grid_points(
             return_sorted, radius_cell_ratio)
 
     grid = _GRID(
-        sorted_points2=sorted_points2,  # (N, P, D) 
+        sorted_points2=sorted_points2,  # (N, P, D)
         pc2_grid_off=pc2_grid_off,  # (N, G)
         sorted_points2_idxs=sorted_points2_idxs,  # (N, P)
         grid_params=grid_params_cuda)  # (N, 6) or (N, 8)
@@ -393,3 +395,33 @@ def frnn_gather(x: torch.Tensor,
     x_out[mask] = 0.0
 
     return x_out
+
+
+class _frnn_bf_points(Function):
+    """
+    Torch autograd Functio wrapper for FRNN CUDA brute force implementation
+    (validation only)
+    """
+
+    @staticmethod
+    def forward(ctx, points1, points2, lengths1, lengths2, K, r):
+        idxs, dists = _C.frnn_bf_cuda(points1, points2, lengths1, lengths2, K,
+                                      r)
+
+        ctx.save_for_backward(points1, points2, lengths1, lengths2, idxs)
+        ctx.mark_non_differentiable(idxs)
+
+        return idxs, dists
+
+    @staticmethod
+    def backward(ctx, grad_idxs, grad_dists):
+        points1, points2, lengths1, lengths2, idxs = ctx.saved_tensors
+        grad_points1, grad_points2 = _C.frnn_backward_cuda(
+            points1, points2, lengths1, lengths2, idxs, grad_dists)
+        return grad_points1, grad_points2, None, None, None, None
+
+
+def frnn_bf_points(points1, points2, lengths1, lengths2, K, r):
+    idxs, dists = _frnn_bf_points.apply(points1, points2, lengths1, lengths2,
+                                        K, r)
+    return idxs, dists
