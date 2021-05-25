@@ -182,7 +182,7 @@ if __name__ == "__main__":
             'Dim', 'Different key percentage', 'Dists all close',
             'Different key percentage reuse', 'Dists all close reuse'
         ])
-        for d in range(4, 9):
+        for d in range(2, 9):
             for k in range(14, 65, 10):
                 validator = TestFRNN(D=d, K=k, backward=True)
                 results = validator.compare_frnn_knn()

@@ -5,23 +5,20 @@
 #include <queue>
 #include <tuple>
 
+#include "grid/counting_sort.h"
+#include "grid/find_nbrs.h"
 #include "grid/grid.h"
 #include "grid/insert_points.h"
 #include "grid/prefix_sum.h"
-#include "grid/counting_sort.h"
-#include "grid/find_nbrs.h"
 
-
-
-std::tuple<at::Tensor, at::Tensor>
-FindNbrsCPU(const at::Tensor points1,          // (N, P1, 3)
-            const at::Tensor points2,          // (N, P2, 3)
-            const at::Tensor lengths1,         // (N,)
-            const at::Tensor lengths2,         // (N,)
-            const at::Tensor grid_off,         // (N, G)
-            const at::Tensor sorted_point_idx, // (N, P2)
-            const GridParams *params, int K, float r) {
-
+std::tuple<at::Tensor, at::Tensor> FindNbrsCPU(
+    const at::Tensor points1,           // (N, P1, 3)
+    const at::Tensor points2,           // (N, P2, 3)
+    const at::Tensor lengths1,          // (N,)
+    const at::Tensor lengths2,          // (N,)
+    const at::Tensor grid_off,          // (N, G)
+    const at::Tensor sorted_point_idx,  // (N, P2)
+    const GridParams *params, int K, float r) {
   int N = points1.size(0);
   int P1 = points1.size(1);
   // const int G = grid_off.size(1);
@@ -106,11 +103,36 @@ FindNbrsCPU(const at::Tensor points1,          // (N, P1, 3)
   return std::make_tuple(idxs, dists);
 }
 
-std::tuple<at::Tensor, at::Tensor>
-TestFindNbrsCPU(const at::Tensor bboxes, const at::Tensor points1,
-                const at::Tensor points2, const at::Tensor lengths1,
-                const at::Tensor lengths2, int K, float r) {
+// deprecated cpp functions
+void SetupGridParams(float *bboxes, float cell_size, GridParams *params) {
+  /*
+    params->grid_min.x = bboxes[0];
+    params->grid_max.x = bboxes[1];
+    params->grid_min.y = bboxes[2];
+    params->grid_max.y = bboxes[3];
+    params->grid_min.z = bboxes[4];
+    params->grid_max.z = bboxes[5];
 
+    params->grid_size = params->grid_max - params->grid_min;
+    float res_min = std::min(std::min(params->grid_size.x, params->grid_size.y),
+                             params->grid_size.z);
+    if (cell_size < res_min / GRID_3D_MAX_RES)
+      cell_size = res_min / GRID_3D_MAX_RES;
+    params->grid_res.x = (int)(params->grid_size.x / cell_size) + 1;
+    params->grid_res.y = (int)(params->grid_size.y / cell_size) + 1;
+    params->grid_res.z = (int)(params->grid_size.z / cell_size) + 1;
+    params->grid_total =
+        params->grid_res.x * params->grid_res.y * params->grid_res.z;
+
+    params->grid_delta = 1 / cell_size;
+
+    return;
+  */
+}
+
+std::tuple<at::Tensor, at::Tensor> TestFindNbrsCPU(
+    const at::Tensor bboxes, const at::Tensor points1, const at::Tensor points2,
+    const at::Tensor lengths1, const at::Tensor lengths2, int K, float r) {
   int N = points1.size(0);
   int P2 = points2.size(1);
   float cell_size = r;
