@@ -141,8 +141,8 @@ std::tuple<at::Tensor, at::Tensor> FRNNBackwardCUDA(
 
   TORCH_CHECK(points1.size(2) == points2.size(2),
               "Two point clouds of different dimensions");
-  TORCH_CHECK(points1.size(2) == 2 || points1.size(2) == 3,
-              "Only 2D/3D points are supported");
+  // TORCH_CHECK(points1.size(2) == 2 || points1.size(2) == 3,
+  //             "Only 2D/3D points are supported");
   TORCH_CHECK(idxs.size(0) == N,
               "FRNN idxs must have the same batch dimension");
   TORCH_CHECK(idxs.size(1) == P1,

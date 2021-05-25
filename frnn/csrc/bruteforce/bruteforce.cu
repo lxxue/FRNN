@@ -69,7 +69,7 @@ struct FRNNBruteForceFunctor {
 constexpr int V2_MIN_D = 1;
 constexpr int V2_MAX_D = 8;
 constexpr int V2_MIN_K = 1;
-constexpr int V2_MAX_K = 32;
+constexpr int V2_MAX_K = 64;
 
 std::tuple<at::Tensor, at::Tensor> FRNNBruteForceCUDA(
     const at::Tensor &p1, const at::Tensor &p2, const at::Tensor &lengths1,

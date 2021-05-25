@@ -421,7 +421,16 @@ class _frnn_bf_points(Function):
         return grad_points1, grad_points2, None, None, None, None
 
 
-def frnn_bf_points(points1, points2, lengths1, lengths2, K, r):
+def frnn_bf_points(points1,
+                   points2,
+                   lengths1,
+                   lengths2,
+                   K,
+                   r,
+                   return_nn=False):
     idxs, dists = _frnn_bf_points.apply(points1, points2, lengths1, lengths2,
                                         K, r)
-    return idxs, dists
+    points2_nn = None
+    if return_nn:
+        points2_nn = frnn_gather(points2, idxs, lengths2)
+    return idxs, dists, points2_nn
