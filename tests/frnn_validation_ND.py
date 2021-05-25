@@ -85,16 +85,11 @@ class TestFRNN:
         # nn[mask] = 0.
         return dists, idxs, nn
 
-    # def frnn_bf(self):
-    #   idxs, dists = frnn._C.frnn_bf_cuda(
-    #     self.pc1_cuda,
-    #     self.pc2_cuda,
-    #     self.lengths1_cuda,
-    #     self.lengths2_cuda,
-    #     self.K,
-    #     self.r
-    #   )
-    #   return dists, idxs
+    def frnn_bf(self):
+        idxs, dists = frnn._C.frnn_bf_cuda(self.pc1_cuda, self.pc2_cuda,
+                                           self.lengths1_cuda,
+                                           self.lengths2_cuda, self.K, self.r)
+        return dists, idxs
 
     def compare_frnn_knn(self):
         # forward

@@ -1,9 +1,4 @@
-#include <ATen/ATen.h>
-#include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
-#include <float.h>
-#include <iostream>
-#include <tuple>
+#include "backward/backward.h"
 
 __global__ void FRNNBackward2DKernel(
     const float *__restrict__ points1, const float *__restrict__ points2,
@@ -25,8 +20,8 @@ __global__ void FRNNBackward2DKernel(
     const long num2 = lengths2[n];
     if ((p1_idx < num1) && (k < num2)) {
       const long p2_idx = idxs[n * P1 * K + p1_idx * K + k];
-      if (p2_idx <
-          0) // sentinel value -1 indicating no fixed radius negihbors here
+      if (p2_idx < 0)
+        // sentinel value -1 indicating no fixed radius negihbors here
         continue;
       const float grad_dist = grad_dists[n * P1 * K + p1_idx * K + k];
 
@@ -39,6 +34,7 @@ __global__ void FRNNBackward2DKernel(
   }
 }
 
+/*
 __global__ void FRNNBackward3DKernel(
     const float *__restrict__ points1, const float *__restrict__ points2,
     const long *__restrict__ lengths1, const long *__restrict__ lengths2,
@@ -59,8 +55,8 @@ __global__ void FRNNBackward3DKernel(
     const long num2 = lengths2[n];
     if ((p1_idx < num1) && (k < num2)) {
       const long p2_idx = idxs[n * P1 * K + p1_idx * K + k];
-      if (p2_idx <
-          0) // sentinel value -1 indicating no fixed radius negihbors here
+      if (p2_idx < 0)
+        // sentinel value -1 indicating no fixed radius negihbors here
         continue;
       const float grad_dist = grad_dists[n * P1 * K + p1_idx * K + k];
 
@@ -72,12 +68,61 @@ __global__ void FRNNBackward3DKernel(
     }
   }
 }
+*/
+template <int D>
+__global__ void FRNNBackwardNDKernel(
+    const float *__restrict__ points1, const float *__restrict__ points2,
+    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
+    const long *__restrict__ idxs, const float *__restrict__ grad_dists,
+    float *__restrict__ grad_points1, float *__restrict__ grad_points2, int N,
+    int P1, int P2, int K) {
+  const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  const int stride = gridDim.x * blockDim.x;
+  for (int i = tid; i < N * P1 * K * D; i += stride) {
+    const int n = i / (P1 * K * D);
+    int rem = i % (P1 * K * D);
+    const int p1_idx = rem / (K * D);
+    rem = rem % (K * D);
+    const int k = rem / D;
+    const int d = rem % D;
 
-std::tuple<at::Tensor, at::Tensor>
-FRNNBackwardCUDA(const at::Tensor points1, const at::Tensor points2,
-                 const at::Tensor lengths1, const at::Tensor lengths2,
-                 const at::Tensor idxs, const at::Tensor grad_dists) {
+    const long num1 = lengths1[n];
+    const long num2 = lengths2[n];
+    if ((p1_idx < num1) && (k < num2)) {
+      const long p2_idx = idxs[n * P1 * K + p1_idx * K + k];
+      if (p2_idx < 0)
+        // sentinel value -1 indicating no fixed radius negihbors here
+        continue;
+      const float grad_dist = grad_dists[n * P1 * K + p1_idx * K + k];
 
+      const float diff = 2.0f * grad_dist *
+                         (points1[n * P1 * D + p1_idx * D + d] -
+                          points2[n * P2 * D + p2_idx * D + d]);
+      atomicAdd(grad_points1 + n * P1 * D + p1_idx * D + d, diff);
+      atomicAdd(grad_points2 + n * P2 * D + p2_idx * D + d, -1.0f * diff);
+    }
+  }
+}
+
+template <int D>
+struct FRNNBackwardNDKernelFunctor {
+  static void run(
+      int blocks, int threads, const float *__restrict__ points1,
+      const float *__restrict__ points2, const long *__restrict__ lengths1,
+      const long *__restrict__ lengths2, const long *__restrict__ idxs,
+      const float *__restrict__ grad_dists, float *__restrict__ grad_points1,
+      float *__restrict__ grad_points2, int N, int P1, int P2, int K) {
+    cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+    FRNNBackwardNDKernel<D><<<blocks, threads, 0, stream>>>(
+        points1, points2, lengths1, lengths2, idxs, grad_dists, grad_points1,
+        grad_points2, N, P1, P2, K);
+  }
+};
+
+std::tuple<at::Tensor, at::Tensor> FRNNBackwardCUDA(
+    const at::Tensor points1, const at::Tensor points2,
+    const at::Tensor lengths1, const at::Tensor lengths2, const at::Tensor idxs,
+    const at::Tensor grad_dists) {
   at::TensorArg points1_t{points1, "points1", 1},
       points2_t{points2, "points2", 2}, lengths1_t{lengths1, "lenghts1", 3},
       lengths2_t{lengths2, "lengths2", 4}, idxs_t{idxs, "idxs", 5},
@@ -131,8 +176,18 @@ FRNNBackwardCUDA(const at::Tensor points1, const at::Tensor points2,
         grad_points1.data_ptr<float>(), grad_points2.data_ptr<float>(), N, P1,
         P2, K);
   } else {
-    FRNNBackward3DKernel<<<blocks, threads, 0, stream>>>(
-        points1.contiguous().data_ptr<float>(),
+    // FRNNBackward3DKernel<<<blocks, threads, 0, stream>>>(
+    //     points1.contiguous().data_ptr<float>(),
+    //     points2.contiguous().data_ptr<float>(),
+    //     lengths1.contiguous().data_ptr<long>(),
+    //     lengths2.contiguous().data_ptr<long>(),
+    //     idxs.contiguous().data_ptr<long>(),
+    //     grad_dists.contiguous().data_ptr<float>(),
+    //     grad_points1.data_ptr<float>(), grad_points2.data_ptr<float>(), N,
+    //     P1, P2, K);
+
+    DispatchKernel1D<FRNNBackwardNDKernelFunctor, MIN_D, MAX_D>(
+        D, blocks, threads, points1.contiguous().data_ptr<float>(),
         points2.contiguous().data_ptr<float>(),
         lengths1.contiguous().data_ptr<long>(),
         lengths2.contiguous().data_ptr<long>(),

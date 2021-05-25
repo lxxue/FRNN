@@ -1,10 +1,11 @@
+#include <torch/extension.h>
+
 #include "backward/backward.h"
 #include "bruteforce/bruteforce.h"
-#include "grid/grid.h"
-#include "grid/insert_points.h"
 #include "grid/counting_sort.h"
 #include "grid/find_nbrs.h"
-#include <torch/extension.h>
+#include "grid/grid.h"
+#include "grid/insert_points.h"
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("setup_grid_params", &SetupGridParams);
