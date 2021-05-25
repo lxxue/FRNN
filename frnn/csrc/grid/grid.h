@@ -25,11 +25,11 @@
 
 // TODO: figure out a suitable dimension of grid?
 constexpr int MIN_D = 3;
-constexpr int MAX_D = 16;
+constexpr int MAX_D = 8;
 
 // TODO: Optimize for large K
 constexpr int MIN_K = 1;
-constexpr int MAX_K = 128;
+constexpr int MAX_K = 64;
 
 // now use at::Tensor to store grid params
 // and we setup grid params in python

@@ -157,11 +157,12 @@ if __name__ == "__main__":
             'Dim', 'Different key percentage', 'Dists all close',
             'Different key percentage reuse', 'Dists all close reuse'
         ])
-        for d in range(4, 17):
-            validator = TestFRNN(D=d)
-            results = validator.compare_frnn_knn()
-            print(results)
-            writer.writerow(results)
+        for d in range(4, 9):
+            for k in range(14, 65, 10):
+                validator = TestFRNN(D=d, K=k)
+                results = validator.compare_frnn_knn()
+                print(d, k, results)
+                writer.writerow(results)
             # results = validator.compare_frnnreuse_knn()
             # print(results)
             # writer.writerow(results)
