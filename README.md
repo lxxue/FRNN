@@ -54,12 +54,12 @@ For manually gather nearest neighbors from idxs generated via frnn_grid_points:
 
 ## Note
 
-For now this function only supports D=2/3 and K <= 32. For point clouds with fewer than 10,000 points, the speedup might not be that much.
+For small point clouds (e.g. < 10,000 points), the bruteforce way (e.g. pytorch3d's KNN) might be faster.
 
 ## TODO
 
-- [ ] support large D
-- [ ] support large K
+- [x] support large D (not fully optimized yet)
+- [x] support large K (not fully optimized yet)
 - [ ] collect all points within radius
 - [ ] cpp standalone implementation
 
