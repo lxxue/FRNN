@@ -4,7 +4,7 @@ import torch
 import frnn
 from pytorch3d.ops.knn import knn_points
 
-num_points_fixed_query = 100000
+num_points_fixed_query = 1000
 torch.autograd.set_detect_anomaly(True)
 
 
@@ -105,6 +105,10 @@ class TestFRNN:
                                               return_nn=True)
         return dists, idxs, nn
 
+    def test_frnn_kd(self):
+        dists_frnn, idxs_frnn, nn_frnn = self.frnn_grid()
+        return [0, 0]
+
     def compare_frnn_knn(self):
         # forward
         dists_knn, idxs_knn, nn_knn = self.knn()
@@ -182,10 +186,11 @@ if __name__ == "__main__":
             'Dim', 'Different key percentage', 'Dists all close',
             'Different key percentage reuse', 'Dists all close reuse'
         ])
-        for d in range(2, 9):
-            for k in range(14, 65, 10):
+        for d in range(2, 33):
+            for k in range(2, 66, 2):
                 validator = TestFRNN(D=d, K=k, backward=True)
-                results = validator.compare_frnn_knn()
+                # results = validator.compare_frnn_knn()
+                results = validator.test_frnn_kd()
                 print(d, k, results)
                 writer.writerow(results)
             # results = validator.compare_frnnreuse_knn()

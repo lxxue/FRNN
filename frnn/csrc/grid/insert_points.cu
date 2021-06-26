@@ -169,7 +169,7 @@ void InsertPointsCUDA(const at::Tensor points,   // (N, P, D)
     //       grid_idx.contiguous().data_ptr<int>(), points.size(0),
     //       points.size(1), G);
   } else {
-    DispatchKernel1D<InsertPointsNDKernelFunctor, MIN_D, MAX_D>(
+    DispatchKernel1D<InsertPointsNDKernelFunctor, V1_MIN_D, V1_MAX_D>(
         D, blocks, threads, points.contiguous().data_ptr<float>(),
         lengths.contiguous().data_ptr<long>(),
         params.contiguous().data_ptr<float>(),
