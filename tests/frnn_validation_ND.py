@@ -108,8 +108,8 @@ class TestFRNN:
     def test_frnn_kd(self):
         dists_knn, idxs_knn, nn_knn = self.knn()
         dists_frnn, idxs_frnn, nn_frnn = self.frnn_grid()
-        dists_knn[dists_knn > self.r * self.r] = -1
         idxs_knn[dists_knn > self.r * self.r] = -1
+        dists_knn[dists_knn > self.r * self.r] = -1
         idxs_all_same = torch.all(idxs_frnn == idxs_knn).item()
         diff_keys_percentage = torch.sum(idxs_frnn == idxs_knn).type(
             torch.float).item(
@@ -196,6 +196,9 @@ if __name__ == "__main__":
         ])
         for d in range(2, 70, 4):
             for k in range(2, 70, 4):
+
+                # for d in [14]:
+                #     for k in [30]:
                 validator = TestFRNN(D=d, K=k, backward=True)
                 # results = validator.compare_frnn_knn()
                 results = validator.test_frnn_kd()

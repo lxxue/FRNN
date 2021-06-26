@@ -630,7 +630,6 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   int threads = 256;
 
   int version = FRNNChooseVersion(D, K);
-  printf("%d\n", version);
 
   // DispatchKernel1D<FindNbrsKernelFunctor, MIN_K, MAX_K>(
   //     K, blocks, threads, D, points1.contiguous().data_ptr<float>(),
@@ -656,8 +655,7 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
         params.contiguous().data_ptr<float>(), dists.data_ptr<float>(),
         idxs.data_ptr<long>(), N, P1, P2, G, D, K, rs.data_ptr<float>(),
         r2s.data_ptr<float>());
-  }
-  if (version == 1) {
+  } else if (version == 1) {
     DispatchKernel1D<FindNbrsKernelV1Functor, V1_MIN_D, V1_MAX_D>(
         D, blocks, threads, points1.contiguous().data_ptr<float>(),
         points2.contiguous().data_ptr<float>(),
