@@ -5,23 +5,24 @@ import torch
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import CUDA_HOME, CppExtension, CUDAExtension
 
+
 def get_extensions():
     this_dir = os.path.dirname(os.path.abspath(__file__))
     extensions_dir = os.path.join(this_dir, "frnn", "csrc")
     main_source = os.path.join(extensions_dir, "ext.cpp")
     sources = glob.glob(os.path.join(extensions_dir, "*", "*.cpp"))
-    source_cuda = glob.glob(os.path.join(extensions_dir, "*", "*.cu"))
+    sources_cuda = glob.glob(os.path.join(extensions_dir, "*", "*.cu"))
 
-    extension  = CUDAExtension
+    extension = CUDAExtension
     sources = [main_source] + sources
-    sources += source_cuda
+    sources += sources_cuda
     extra_compile_args = {"cxx": ["-std=c++14"]}
 
     nvcc_args = [
-        "-DCUDA_HAS_FP16=1",
-        "-D__CUDA_NO_HALF_OPERATORS__",
-        "-D__CUDA_NO_HALF_CONVERSIONS__",
-        "-D__CUDA_NO_HALF2_OPERATORS__",
+        "-DCUDA_HAS_FP16=1", "-D__CUDA_NO_HALF_OPERATORS__",
+        "-D__CUDA_NO_HALF_CONVERSIONS__", "-D__CUDA_NO_HALF2_OPERATORS__",
+        "--ftemplate-depth=2048"
+        # "–pending_instantiations=2048",
     ]
     nvcc_flags_env = os.getenv("NVCC_FLAGS", "")
     if nvcc_flags_env != "":
@@ -40,29 +41,30 @@ def get_extensions():
     # include_dirs = [extensions_dir]
     include_dirs = torch.utils.cpp_extension.include_paths() + [extensions_dir]
     ext_modules = [
-        extension(
-            "frnn._C",
-            sources,
-            include_dirs=include_dirs,
-            define_macros=[],
-            extra_compile_args=extra_compile_args
-        )
+        extension("frnn._C",
+                  sources,
+                  include_dirs=include_dirs,
+                  define_macros=[],
+                  extra_compile_args=extra_compile_args)
     ]
     print(sources)
     return ext_modules
+
 
 # if os.getenv("PYTORCH3D_NO_NINJA", "0") == "1":
 #     class BuildExtension(torch.utils.cpp_extension.BuildExtension):
 #         def __init__(self, *args, **kwargs):
 #             super().__init__(use_ninja=False, *args, **kwargs)
-# 
+#
 # else:
 #     BuildExtension = torch.utils.cpp_extension.BuildExtension
 
 
 class BuildExtension(torch.utils.cpp_extension.BuildExtension):
+
     def __init__(self, *args, **kwargs):
         super().__init__(use_ninja=False, *args, **kwargs)
+
 
 setup(
     name="frnn",

@@ -36,9 +36,9 @@ void InsertPointsCPU(const at::Tensor points, const at::Tensor lengths,
   }
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor>
-TestInsertPointsCPU(const at::Tensor bboxes, const at::Tensor points,
-                    const at::Tensor lengths, float r) {
+std::tuple<at::Tensor, at::Tensor, at::Tensor> TestInsertPointsCPU(
+    const at::Tensor bboxes, const at::Tensor points, const at::Tensor lengths,
+    float r) {
   int N = bboxes.size(0);
   int P = points.size(1);
   float cell_size = r;

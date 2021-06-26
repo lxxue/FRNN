@@ -43,7 +43,7 @@ class _frnn_grid_points(Function):
         N = points1.shape[0]
         D = points1.shape[2]
         # assert D == 2 or D == 3, "For now only 2D/3D is supported"
-        assert D >= 2 and D <= 32
+        # assert D >= 2 and D <= 32
         # setup grid params
         # for D > 3, still use 3D grid
         # TODO: use PCA
@@ -289,9 +289,9 @@ def frnn_grid_points(
         )
     # if points1.shape[2] != 2 and points1.shape[2] != 3:
     #     raise ValueError("for now only grid in 2D/3D is supported")
-    if points1.shape[2] < 2 or points1.shape[2] > 32:
-        raise ValueError(
-            "for now only point clouds of dimension 2-32 is supported")
+    # if points1.shape[2] < 2 or points1.shape[2] > 32:
+    #     raise ValueError(
+    #         "for now only point clouds of dimension 2-32 is supported")
     if not points1.is_cuda or not points2.is_cuda:
         raise TypeError("for now only cuda version is supported")
 

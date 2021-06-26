@@ -24,6 +24,9 @@
 #define GRID_2D_MAX_RES 1024
 
 // TODO: Optimize for large K
+constexpr int V0_MIN_D = 2;
+constexpr int V0_MAX_D = 1024;
+
 constexpr int V1_MIN_D = 2;
 constexpr int V1_MAX_D = 32;
 

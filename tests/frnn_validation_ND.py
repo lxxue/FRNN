@@ -106,8 +106,16 @@ class TestFRNN:
         return dists, idxs, nn
 
     def test_frnn_kd(self):
+        dists_knn, idxs_knn, nn_knn = self.knn()
         dists_frnn, idxs_frnn, nn_frnn = self.frnn_grid()
-        return [0, 0]
+        dists_knn[dists_knn > self.r * self.r] = -1
+        idxs_knn[dists_knn > self.r * self.r] = -1
+        idxs_all_same = torch.all(idxs_frnn == idxs_knn).item()
+        diff_keys_percentage = torch.sum(idxs_frnn == idxs_knn).type(
+            torch.float).item(
+            ) / self.K / self.pc1_frnn.shape[1] / self.num_pcs
+        dists_all_close = torch.allclose(dists_frnn, dists_knn)
+        return [idxs_all_same, diff_keys_percentage, dists_all_close]
 
     def compare_frnn_knn(self):
         # forward
@@ -186,8 +194,8 @@ if __name__ == "__main__":
             'Dim', 'Different key percentage', 'Dists all close',
             'Different key percentage reuse', 'Dists all close reuse'
         ])
-        for d in range(2, 33):
-            for k in range(2, 66, 2):
+        for d in range(2, 70, 4):
+            for k in range(2, 70, 4):
                 validator = TestFRNN(D=d, K=k, backward=True)
                 # results = validator.compare_frnn_knn()
                 results = validator.test_frnn_kd()

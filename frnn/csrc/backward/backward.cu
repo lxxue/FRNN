@@ -186,7 +186,7 @@ std::tuple<at::Tensor, at::Tensor> FRNNBackwardCUDA(
     //     grad_points1.data_ptr<float>(), grad_points2.data_ptr<float>(), N,
     //     P1, P2, K);
 
-    DispatchKernel1D<FRNNBackwardNDKernelFunctor, V1_MIN_D, V1_MAX_D>(
+    DispatchKernel1D<FRNNBackwardNDKernelFunctor, V0_MIN_D, V0_MAX_D>(
         D, blocks, threads, points1.contiguous().data_ptr<float>(),
         points2.contiguous().data_ptr<float>(),
         lengths1.contiguous().data_ptr<long>(),

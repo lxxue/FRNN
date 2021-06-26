@@ -241,6 +241,93 @@ __global__ void FindNbrs3DKernel(
 }
 */
 
+__global__ void FindNbrsNDKernelV0(
+    const float *__restrict__ points1, const float *__restrict__ points2,
+    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
+    const int *__restrict__ pc2_grid_off,
+    const int *__restrict__ sorted_points1_idxs,
+    const int *__restrict__ sorted_points2_idxs,
+    const float *__restrict__ params, float *__restrict__ dists,
+    long *__restrict__ idxs, int N, int P1, int P2, int G, int D, int K,
+    const float *__restrict__ rs, const float *__restrict__ r2s) {
+  // access all the data in global memory directly
+  float3 cur_point_3;
+  int chunks_per_cloud = (1 + (P1 - 1) / blockDim.x);
+  int chunks_to_do = N * chunks_per_cloud;
+  for (int chunk = blockIdx.x; chunk < chunks_to_do; chunk += gridDim.x) {
+    int n = chunk / chunks_per_cloud;
+    int start_point = blockDim.x * (chunk % chunks_per_cloud);
+    int p1 = start_point + threadIdx.x;
+    int old_p1 = sorted_points1_idxs[n * P1 + p1];
+    if (p1 >= lengths1[n]) {
+      continue;
+    }
+
+    float cur_r = rs[n];
+    float cur_r2 = r2s[n];
+    cur_point_3.x = points1[n * P1 * D + p1 * D + 0];
+    cur_point_3.y = points1[n * P1 * D + p1 * D + 1];
+    cur_point_3.z = points1[n * P1 * D + p1 * D + 2];
+
+    float grid_min_x = params[n * GRID_3D_PARAMS_SIZE + GRID_3D_MIN_X];
+    float grid_min_y = params[n * GRID_3D_PARAMS_SIZE + GRID_3D_MIN_Y];
+    float grid_min_z = params[n * GRID_3D_PARAMS_SIZE + GRID_3D_MIN_Z];
+    float grid_delta = params[n * GRID_3D_PARAMS_SIZE + GRID_3D_DELTA];
+    int grid_res_x = params[n * GRID_3D_PARAMS_SIZE + GRID_3D_RES_X];
+    int grid_res_y = params[n * GRID_3D_PARAMS_SIZE + GRID_3D_RES_Y];
+    int grid_res_z = params[n * GRID_3D_PARAMS_SIZE + GRID_3D_RES_Z];
+    int grid_total = params[n * GRID_3D_PARAMS_SIZE + GRID_3D_TOTAL];
+
+    int min_gc_x =
+        (int)std::floor((cur_point_3.x - grid_min_x - cur_r) * grid_delta);
+    int min_gc_y =
+        (int)std::floor((cur_point_3.y - grid_min_y - cur_r) * grid_delta);
+    int min_gc_z =
+        (int)std::floor((cur_point_3.z - grid_min_z - cur_r) * grid_delta);
+    int max_gc_x =
+        (int)std::floor((cur_point_3.x - grid_min_x + cur_r) * grid_delta);
+    int max_gc_y =
+        (int)std::floor((cur_point_3.y - grid_min_y + cur_r) * grid_delta);
+    int max_gc_z =
+        (int)std::floor((cur_point_3.z - grid_min_z + cur_r) * grid_delta);
+    int offset = n * P1 * K + old_p1 * K;
+    MinK<float, long> mink(dists + offset, idxs + offset, K);
+    for (int x = max(min_gc_x, 0); x <= min(max_gc_x, grid_res_x - 1); ++x) {
+      for (int y = max(min_gc_y, 0); y <= min(max_gc_y, grid_res_y - 1); ++y) {
+        for (int z = max(min_gc_z, 0); z <= min(max_gc_z, grid_res_z - 1);
+             ++z) {
+          int cell_idx = (x * grid_res_y + y) * grid_res_z + z;
+          int p2_start = pc2_grid_off[n * G + cell_idx];
+          int p2_end;
+          if (cell_idx + 1 == grid_total) {
+            p2_end = lengths2[n];
+          } else {
+            p2_end = pc2_grid_off[n * G + cell_idx + 1];
+          }
+          for (int p2 = p2_start; p2 < p2_end; ++p2) {
+            float sqdist = 0;
+            float diff;
+            for (int d = 0; d < D; ++d) {
+              diff = points2[n * P2 * D + p2 * D + d] -
+                     points1[n * P1 * D + p1 * D + d];
+              sqdist += diff * diff;
+            }
+            if (sqdist <= cur_r2) {
+              mink.add(sqdist, sorted_points2_idxs[n * P2 + p2]);
+            }
+          }
+        }
+      }
+    }
+    // TODO: add return_sort here
+    mink.sort();
+    // for (int k = 0; k < mink.size(); ++k) {
+    //   idxs[n * P1 * K + old_p1 * K + k] = min_idxs[k];
+    //   dists[n * P1 * K + old_p1 * K + k] = min_dists[k];
+    // }
+  }
+}
+
 template <int D>
 __global__ void FindNbrsNDKernelV1(
     const float *__restrict__ points1, const float *__restrict__ points2,
@@ -493,8 +580,10 @@ int FRNNChooseVersion(const int D, const int K) {
     return 2;
   } else if (InBounds(V1_MIN_D, D, V1_MAX_D)) {
     return 1;
-  } else {
+  } else if (InBounds(V0_MIN_D, D, V0_MAX_D)) {
     return 0;
+  } else {
+    return -1;
   }
 }
 
@@ -537,8 +626,8 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   auto idxs = at::full({N, P1, K}, -1, lengths1.options());
   auto dists = at::full({N, P1, K}, -1, points1.options());
 
-  int threads = 256;
   int blocks = 256;
+  int threads = 256;
 
   int version = FRNNChooseVersion(D, K);
   printf("%d\n", version);
@@ -554,6 +643,20 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   //     params.contiguous().data_ptr<float>(), dists.data_ptr<float>(),
   //     idxs.data_ptr<long>(), N, P1, P2, G, rs.data_ptr<float>(),
   //     r2s.data_ptr<float>());
+  if (version == 0) {
+    assert(D > 2);
+    FindNbrsNDKernelV0<<<blocks, threads, 0, stream>>>(
+        points1.contiguous().data_ptr<float>(),
+        points2.contiguous().data_ptr<float>(),
+        lengths1.contiguous().data_ptr<long>(),
+        lengths2.contiguous().data_ptr<long>(),
+        pc2_grid_off.contiguous().data_ptr<int>(),
+        sorted_points1_idxs.contiguous().data_ptr<int>(),
+        sorted_points2_idxs.contiguous().data_ptr<int>(),
+        params.contiguous().data_ptr<float>(), dists.data_ptr<float>(),
+        idxs.data_ptr<long>(), N, P1, P2, G, D, K, rs.data_ptr<float>(),
+        r2s.data_ptr<float>());
+  }
   if (version == 1) {
     DispatchKernel1D<FindNbrsKernelV1Functor, V1_MIN_D, V1_MAX_D>(
         D, blocks, threads, points1.contiguous().data_ptr<float>(),
