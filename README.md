@@ -60,6 +60,7 @@ For small point clouds (e.g. < 10,000 points), the bruteforce way (e.g. pytorch3
 
 - [x] support large D (not fully optimized yet)
 - [x] support large K (not fully optimized yet)
+- [ ] speedup and interface for the same query and reference point cloud
 - [ ] collect all points within radius
 - [ ] cpp standalone implementation
 
