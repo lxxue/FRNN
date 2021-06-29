@@ -52,14 +52,14 @@ class _frnn_grid_points(Function):
             grid_params_size = 8
             grid_delta_idx = 3
             grid_total_idx = 7
-            grid_max_res = 128
+            grid_max_res = 64
             grid_dim = 3
         else:
             # 0-1 grid_min; 2 grid_delta; 3-4 grid_res; 5 grid_total
             grid_params_size = 6
             grid_delta_idx = 2
             grid_total_idx = 5
-            grid_max_res = 1024
+            grid_max_res = 512
             grid_dim = 2
 
         if not use_cached_grid:

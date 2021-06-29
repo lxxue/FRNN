@@ -12,7 +12,7 @@
 #define GRID_3D_RES_Z 6
 #define GRID_3D_TOTAL 7
 #define GRID_3D_PARAMS_SIZE 8
-#define GRID_3D_MAX_RES 128
+#define GRID_3D_MAX_RES 64
 
 #define GRID_2D_MIN_X 0
 #define GRID_2D_MIN_Y 1
@@ -21,7 +21,7 @@
 #define GRID_2D_RES_Y 4
 #define GRID_2D_TOTAL 5
 #define GRID_2D_PARAMS_SIZE 6
-#define GRID_2D_MAX_RES 1024
+#define GRID_2D_MAX_RES 512
 
 // TODO: Optimize for large K
 constexpr int V0_MIN_D = 2;
