@@ -75,12 +75,13 @@ class _frnn_grid_points(Function):
                 grid_params_cuda[i, :grid_delta_idx] = grid_min
                 grid_size = grid_max - grid_min
                 cell_size = r[i].item() / radius_cell_ratio
-                if cell_size < grid_size.min() / grid_max_res:
-                    cell_size = grid_size.min() / grid_max_res
+                if cell_size < grid_size.max() / grid_max_res:
+                    cell_size = grid_size.max() / grid_max_res
                 grid_params_cuda[i, grid_delta_idx] = 1 / cell_size
                 grid_params_cuda[i, grid_delta_idx +
                                  1:grid_total_idx] = torch.floor(
                                      grid_size / cell_size) + 1
+                print(grid_params_cuda[i, grid_delta_idx + 1:grid_total_idx])
                 grid_params_cuda[i, grid_total_idx] = torch.prod(
                     grid_params_cuda[i, grid_delta_idx + 1:grid_total_idx])
                 if G < grid_params_cuda[i, grid_total_idx]:
