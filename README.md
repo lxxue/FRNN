@@ -22,11 +22,12 @@ Should be also fine other versions of cuda/python/pytorch.
 git clone --recursive https://github.com/lxxue/FRNN.git
 # install a prefix_sum routine first
 cd FRNN/external/prefix_sum
-python setup.py install
+pip install .
 
 # install FRNN
 cd ../../ # back to the {FRNN} directory
-python setup.py install
+# this might take a while since I instantiate all combinations of D and K
+pip install .
 ```
 
 ## Usage
