@@ -28,7 +28,7 @@ pip install .
 cd ../../ # back to the {FRNN} directory
 # this might take a while since I instantiate all combinations of D and K
 pip install -e .
-# might need to exiting and re-entering the bash to make importing this package work
+# might need to restart the bash to make importing this package work
 ```
 
 ## Usage
