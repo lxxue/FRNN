@@ -2,12 +2,12 @@
 
 __global__ void FindNbrs2DKernelV1(
     const float *__restrict__ points1, const float *__restrict__ points2,
-    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
+    const int64_t *__restrict__ lengths1, const int64_t *__restrict__ lengths2,
     const int *__restrict__ pc2_grid_off,
     const int *__restrict__ sorted_points1_idxs,
     const int *__restrict__ sorted_points2_idxs,
     const float *__restrict__ params, float *__restrict__ dists,
-    long *__restrict__ idxs, int N, int P1, int P2, int G, int K,
+    int64_t *__restrict__ idxs, int N, int P1, int P2, int G, int K,
     const float *__restrict__ rs, const float *__restrict__ r2s) {
   int chunks_per_cloud = (1 + (P1 - 1) / blockDim.x);
   int chunks_to_do = N * chunks_per_cloud;
@@ -43,7 +43,7 @@ __global__ void FindNbrs2DKernelV1(
         (int)std::floor((cur_point.y - grid_min_y + cur_r) * grid_delta);
     // use global memory directly
     int offset = n * P1 * K + old_p1 * K;
-    MinK<float, long> mink(dists + offset, idxs + offset, K);
+    MinK<float, int64_t> mink(dists + offset, idxs + offset, K);
     for (int x = max(min_gc_x, 0); x <= min(max_gc_x, grid_res_x - 1); ++x) {
       for (int y = max(min_gc_y, 0); y <= min(max_gc_y, grid_res_y - 1); ++y) {
         int cell_idx = x * grid_res_y + y;
@@ -77,12 +77,12 @@ __global__ void FindNbrs2DKernelV1(
 template <int K>
 __global__ void FindNbrs2DKernelV2(
     const float *__restrict__ points1, const float *__restrict__ points2,
-    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
+    const int64_t *__restrict__ lengths1, const int64_t *__restrict__ lengths2,
     const int *__restrict__ pc2_grid_off,
     const int *__restrict__ sorted_points1_idxs,
     const int *__restrict__ sorted_points2_idxs,
     const float *__restrict__ params, float *__restrict__ dists,
-    long *__restrict__ idxs, int N, int P1, int P2, int G,
+    int64_t *__restrict__ idxs, int N, int P1, int P2, int G,
     const float *__restrict__ rs, const float *__restrict__ r2s) {
   float min_dists[K];
   int min_idxs[K];
@@ -155,12 +155,12 @@ __global__ void FindNbrs2DKernelV2(
 template <int K>
 __global__ void FindNbrs3DKernel(
     const float *__restrict__ points1, const float *__restrict__ points2,
-    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
+    const int64_t *__restrict__ lengths1, const int64_t *__restrict__ lengths2,
     const int *__restrict__ pc2_grid_off,
     const int *__restrict__ sorted_points1_idxs,
     const int *__restrict__ sorted_points2_idxs,
     const float *__restrict__ params, float *__restrict__ dists,
-    long *__restrict__ idxs, int N, int P1, int P2, int G,
+    int64_t *__restrict__ idxs, int N, int P1, int P2, int G,
     const float *__restrict__ rs, const float *__restrict__ r2s) {
   float min_dists[K];
   int min_idxs[K];
@@ -243,12 +243,12 @@ __global__ void FindNbrs3DKernel(
 
 __global__ void FindNbrsNDKernelV0(
     const float *__restrict__ points1, const float *__restrict__ points2,
-    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
+    const int64_t *__restrict__ lengths1, const int64_t *__restrict__ lengths2,
     const int *__restrict__ pc2_grid_off,
     const int *__restrict__ sorted_points1_idxs,
     const int *__restrict__ sorted_points2_idxs,
     const float *__restrict__ params, float *__restrict__ dists,
-    long *__restrict__ idxs, int N, int P1, int P2, int G, int D, int K,
+    int64_t *__restrict__ idxs, int N, int P1, int P2, int G, int D, int K,
     const float *__restrict__ rs, const float *__restrict__ r2s) {
   // access all the data in global memory directly
   float3 cur_point_3;
@@ -291,7 +291,7 @@ __global__ void FindNbrsNDKernelV0(
     int max_gc_z =
         (int)std::floor((cur_point_3.z - grid_min_z + cur_r) * grid_delta);
     int offset = n * P1 * K + old_p1 * K;
-    MinK<float, long> mink(dists + offset, idxs + offset, K);
+    MinK<float, int64_t> mink(dists + offset, idxs + offset, K);
     for (int x = max(min_gc_x, 0); x <= min(max_gc_x, grid_res_x - 1); ++x) {
       for (int y = max(min_gc_y, 0); y <= min(max_gc_y, grid_res_y - 1); ++y) {
         for (int z = max(min_gc_z, 0); z <= min(max_gc_z, grid_res_z - 1);
@@ -331,12 +331,12 @@ __global__ void FindNbrsNDKernelV0(
 template <int D>
 __global__ void FindNbrsNDKernelV1(
     const float *__restrict__ points1, const float *__restrict__ points2,
-    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
+    const int64_t *__restrict__ lengths1, const int64_t *__restrict__ lengths2,
     const int *__restrict__ pc2_grid_off,
     const int *__restrict__ sorted_points1_idxs,
     const int *__restrict__ sorted_points2_idxs,
     const float *__restrict__ params, float *__restrict__ dists,
-    long *__restrict__ idxs, int N, int P1, int P2, int G, int K,
+    int64_t *__restrict__ idxs, int N, int P1, int P2, int G, int K,
     const float *__restrict__ rs, const float *__restrict__ r2s) {
   float cur_point[D];
 
@@ -379,7 +379,7 @@ __global__ void FindNbrsNDKernelV1(
     int max_gc_z =
         (int)std::floor((cur_point[2] - grid_min_z + cur_r) * grid_delta);
     int offset = n * P1 * K + old_p1 * K;
-    MinK<float, long> mink(dists + offset, idxs + offset, K);
+    MinK<float, int64_t> mink(dists + offset, idxs + offset, K);
     for (int x = max(min_gc_x, 0); x <= min(max_gc_x, grid_res_x - 1); ++x) {
       for (int y = max(min_gc_y, 0); y <= min(max_gc_y, grid_res_y - 1); ++y) {
         for (int z = max(min_gc_z, 0); z <= min(max_gc_z, grid_res_z - 1);
@@ -418,12 +418,12 @@ __global__ void FindNbrsNDKernelV1(
 template <int D, int K>
 __global__ void FindNbrsNDKernelV2(
     const float *__restrict__ points1, const float *__restrict__ points2,
-    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
+    const int64_t *__restrict__ lengths1, const int64_t *__restrict__ lengths2,
     const int *__restrict__ pc2_grid_off,
     const int *__restrict__ sorted_points1_idxs,
     const int *__restrict__ sorted_points2_idxs,
     const float *__restrict__ params, float *__restrict__ dists,
-    long *__restrict__ idxs, int N, int P1, int P2, int G,
+    int64_t *__restrict__ idxs, int N, int P1, int P2, int G,
     const float *__restrict__ rs, const float *__restrict__ r2s) {
   float min_dists[K];
   int min_idxs[K];
@@ -508,14 +508,14 @@ struct FindNbrsKernelV1Functor {
   static void run(int blocks, int threads,
                   const float *__restrict__ points1,            // (N, P1, D)
                   const float *__restrict__ points2,            // (N, P2, D)
-                  const long *__restrict__ lengths1,            // (N,)
-                  const long *__restrict__ lengths2,            // (N,)
+                  const int64_t *__restrict__ lengths1,            // (N,)
+                  const int64_t *__restrict__ lengths2,            // (N,)
                   const int *__restrict__ pc2_grid_off,         // (N, G)
                   const int *__restrict__ sorted_points1_idxs,  // (N, P)
                   const int *__restrict__ sorted_points2_idxs,  // (N, P)
                   const float *__restrict__ params,             // (N,)
                   float *__restrict__ dists,                    // (N, P1, K)
-                  long *__restrict__ idxs,                      // (N, P1, K)
+                  int64_t *__restrict__ idxs,                      // (N, P1, K)
                   int N, int P1, int P2, int G, int K, const float *rs,
                   const float *r2s) {
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
@@ -542,14 +542,14 @@ struct FindNbrsKernelV2Functor {
   static void run(int blocks, int threads,
                   const float *__restrict__ points1,            // (N, P1, D)
                   const float *__restrict__ points2,            // (N, P2, D)
-                  const long *__restrict__ lengths1,            // (N,)
-                  const long *__restrict__ lengths2,            // (N,)
+                  const int64_t *__restrict__ lengths1,            // (N,)
+                  const int64_t *__restrict__ lengths2,            // (N,)
                   const int *__restrict__ pc2_grid_off,         // (N, G)
                   const int *__restrict__ sorted_points1_idxs,  // (N, P)
                   const int *__restrict__ sorted_points2_idxs,  // (N, P)
                   const float *__restrict__ params,             // (N,)
                   float *__restrict__ dists,                    // (N, P1, K)
-                  long *__restrict__ idxs,                      // (N, P1, K)
+                  int64_t *__restrict__ idxs,                      // (N, P1, K)
                   int N, int P1, int P2, int G, const float *rs,
                   const float *r2s) {
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
@@ -634,51 +634,51 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCUDA(
   // DispatchKernel1D<FindNbrsKernelFunctor, MIN_K, MAX_K>(
   //     K, blocks, threads, D, points1.contiguous().data_ptr<float>(),
   //     points2.contiguous().data_ptr<float>(),
-  //     lengths1.contiguous().data_ptr<long>(),
-  //     lengths2.contiguous().data_ptr<long>(),
+  //     lengths1.contiguous().data_ptr<int64_t>(),
+  //     lengths2.contiguous().data_ptr<int64_t>(),
   //     pc2_grid_off.contiguous().data_ptr<int>(),
   //     sorted_points1_idxs.contiguous().data_ptr<int>(),
   //     sorted_points2_idxs.contiguous().data_ptr<int>(),
   //     params.contiguous().data_ptr<float>(), dists.data_ptr<float>(),
-  //     idxs.data_ptr<long>(), N, P1, P2, G, rs.data_ptr<float>(),
+  //     idxs.data_ptr<int64_t>(), N, P1, P2, G, rs.data_ptr<float>(),
   //     r2s.data_ptr<float>());
   if (version == 0) {
     assert(D > 2);
     FindNbrsNDKernelV0<<<blocks, threads, 0, stream>>>(
         points1.contiguous().data_ptr<float>(),
         points2.contiguous().data_ptr<float>(),
-        lengths1.contiguous().data_ptr<long>(),
-        lengths2.contiguous().data_ptr<long>(),
+        lengths1.contiguous().data_ptr<int64_t>(),
+        lengths2.contiguous().data_ptr<int64_t>(),
         pc2_grid_off.contiguous().data_ptr<int>(),
         sorted_points1_idxs.contiguous().data_ptr<int>(),
         sorted_points2_idxs.contiguous().data_ptr<int>(),
         params.contiguous().data_ptr<float>(), dists.data_ptr<float>(),
-        idxs.data_ptr<long>(), N, P1, P2, G, D, K, rs.data_ptr<float>(),
+        idxs.data_ptr<int64_t>(), N, P1, P2, G, D, K, rs.data_ptr<float>(),
         r2s.data_ptr<float>());
   } else if (version == 1) {
     DispatchKernel1D<FindNbrsKernelV1Functor, V1_MIN_D, V1_MAX_D>(
         D, blocks, threads, points1.contiguous().data_ptr<float>(),
         points2.contiguous().data_ptr<float>(),
-        lengths1.contiguous().data_ptr<long>(),
-        lengths2.contiguous().data_ptr<long>(),
+        lengths1.contiguous().data_ptr<int64_t>(),
+        lengths2.contiguous().data_ptr<int64_t>(),
         pc2_grid_off.contiguous().data_ptr<int>(),
         sorted_points1_idxs.contiguous().data_ptr<int>(),
         sorted_points2_idxs.contiguous().data_ptr<int>(),
         params.contiguous().data_ptr<float>(), dists.data_ptr<float>(),
-        idxs.data_ptr<long>(), N, P1, P2, G, K, rs.data_ptr<float>(),
+        idxs.data_ptr<int64_t>(), N, P1, P2, G, K, rs.data_ptr<float>(),
         r2s.data_ptr<float>());
   } else if (version == 2) {
     DispatchKernel2D<FindNbrsKernelV2Functor, V2_MIN_D, V2_MAX_D, V2_MIN_K,
                      V2_MAX_K>(
         D, K, blocks, threads, points1.contiguous().data_ptr<float>(),
         points2.contiguous().data_ptr<float>(),
-        lengths1.contiguous().data_ptr<long>(),
-        lengths2.contiguous().data_ptr<long>(),
+        lengths1.contiguous().data_ptr<int64_t>(),
+        lengths2.contiguous().data_ptr<int64_t>(),
         pc2_grid_off.contiguous().data_ptr<int>(),
         sorted_points1_idxs.contiguous().data_ptr<int>(),
         sorted_points2_idxs.contiguous().data_ptr<int>(),
         params.contiguous().data_ptr<float>(), dists.data_ptr<float>(),
-        idxs.data_ptr<long>(), N, P1, P2, G, rs.data_ptr<float>(),
+        idxs.data_ptr<int64_t>(), N, P1, P2, G, rs.data_ptr<float>(),
         r2s.data_ptr<float>());
   } else {
     AT_ASSERTM(false, "Invalid version for find_nbrs");

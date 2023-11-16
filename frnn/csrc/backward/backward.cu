@@ -2,8 +2,8 @@
 
 __global__ void FRNNBackward2DKernel(
     const float *__restrict__ points1, const float *__restrict__ points2,
-    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
-    const long *__restrict__ idxs, const float *__restrict__ grad_dists,
+    const int64_t *__restrict__ lengths1, const int64_t *__restrict__ lengths2,
+    const int64_t *__restrict__ idxs, const float *__restrict__ grad_dists,
     float *__restrict__ grad_points1, float *__restrict__ grad_points2, int N,
     int P1, int P2, int K) {
   const int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -16,10 +16,10 @@ __global__ void FRNNBackward2DKernel(
     const int k = rem / 2;
     const int d = rem % 2;
 
-    const long num1 = lengths1[n];
-    const long num2 = lengths2[n];
+    const int64_t num1 = lengths1[n];
+    const int64_t num2 = lengths2[n];
     if ((p1_idx < num1) && (k < num2)) {
-      const long p2_idx = idxs[n * P1 * K + p1_idx * K + k];
+      const int64_t p2_idx = idxs[n * P1 * K + p1_idx * K + k];
       if (p2_idx < 0)
         // sentinel value -1 indicating no fixed radius negihbors here
         continue;
@@ -37,8 +37,8 @@ __global__ void FRNNBackward2DKernel(
 /*
 __global__ void FRNNBackward3DKernel(
     const float *__restrict__ points1, const float *__restrict__ points2,
-    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
-    const long *__restrict__ idxs, const float *__restrict__ grad_dists,
+    const int64_t *__restrict__ lengths1, const int64_t *__restrict__ lengths2,
+    const int64_t *__restrict__ idxs, const float *__restrict__ grad_dists,
     float *__restrict__ grad_points1, float *__restrict__ grad_points2, int N,
     int P1, int P2, int K) {
   const int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -51,10 +51,10 @@ __global__ void FRNNBackward3DKernel(
     const int k = rem / 3;
     const int d = rem % 3;
 
-    const long num1 = lengths1[n];
-    const long num2 = lengths2[n];
+    const int64_t num1 = lengths1[n];
+    const int64_t num2 = lengths2[n];
     if ((p1_idx < num1) && (k < num2)) {
-      const long p2_idx = idxs[n * P1 * K + p1_idx * K + k];
+      const int64_t p2_idx = idxs[n * P1 * K + p1_idx * K + k];
       if (p2_idx < 0)
         // sentinel value -1 indicating no fixed radius negihbors here
         continue;
@@ -72,8 +72,8 @@ __global__ void FRNNBackward3DKernel(
 template <int D>
 __global__ void FRNNBackwardNDKernel(
     const float *__restrict__ points1, const float *__restrict__ points2,
-    const long *__restrict__ lengths1, const long *__restrict__ lengths2,
-    const long *__restrict__ idxs, const float *__restrict__ grad_dists,
+    const int64_t *__restrict__ lengths1, const int64_t *__restrict__ lengths2,
+    const int64_t *__restrict__ idxs, const float *__restrict__ grad_dists,
     float *__restrict__ grad_points1, float *__restrict__ grad_points2, int N,
     int P1, int P2, int K) {
   const int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -86,10 +86,10 @@ __global__ void FRNNBackwardNDKernel(
     const int k = rem / D;
     const int d = rem % D;
 
-    const long num1 = lengths1[n];
-    const long num2 = lengths2[n];
+    const int64_t num1 = lengths1[n];
+    const int64_t num2 = lengths2[n];
     if ((p1_idx < num1) && (k < num2)) {
-      const long p2_idx = idxs[n * P1 * K + p1_idx * K + k];
+      const int64_t p2_idx = idxs[n * P1 * K + p1_idx * K + k];
       if (p2_idx < 0)
         // sentinel value -1 indicating no fixed radius negihbors here
         continue;
@@ -108,8 +108,8 @@ template <int D>
 struct FRNNBackwardNDKernelFunctor {
   static void run(
       int blocks, int threads, const float *__restrict__ points1,
-      const float *__restrict__ points2, const long *__restrict__ lengths1,
-      const long *__restrict__ lengths2, const long *__restrict__ idxs,
+      const float *__restrict__ points2, const int64_t *__restrict__ lengths1,
+      const int64_t *__restrict__ lengths2, const int64_t *__restrict__ idxs,
       const float *__restrict__ grad_dists, float *__restrict__ grad_points1,
       float *__restrict__ grad_points2, int N, int P1, int P2, int K) {
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
@@ -169,9 +169,9 @@ std::tuple<at::Tensor, at::Tensor> FRNNBackwardCUDA(
     FRNNBackward2DKernel<<<blocks, threads, 0, stream>>>(
         points1.contiguous().data_ptr<float>(),
         points2.contiguous().data_ptr<float>(),
-        lengths1.contiguous().data_ptr<long>(),
-        lengths2.contiguous().data_ptr<long>(),
-        idxs.contiguous().data_ptr<long>(),
+        lengths1.contiguous().data_ptr<int64_t>(),
+        lengths2.contiguous().data_ptr<int64_t>(),
+        idxs.contiguous().data_ptr<int64_t>(),
         grad_dists.contiguous().data_ptr<float>(),
         grad_points1.data_ptr<float>(), grad_points2.data_ptr<float>(), N, P1,
         P2, K);
@@ -179,9 +179,9 @@ std::tuple<at::Tensor, at::Tensor> FRNNBackwardCUDA(
     // FRNNBackward3DKernel<<<blocks, threads, 0, stream>>>(
     //     points1.contiguous().data_ptr<float>(),
     //     points2.contiguous().data_ptr<float>(),
-    //     lengths1.contiguous().data_ptr<long>(),
-    //     lengths2.contiguous().data_ptr<long>(),
-    //     idxs.contiguous().data_ptr<long>(),
+    //     lengths1.contiguous().data_ptr<int64_t>(),
+    //     lengths2.contiguous().data_ptr<int64_t>(),
+    //     idxs.contiguous().data_ptr<int64_t>(),
     //     grad_dists.contiguous().data_ptr<float>(),
     //     grad_points1.data_ptr<float>(), grad_points2.data_ptr<float>(), N,
     //     P1, P2, K);
@@ -189,9 +189,9 @@ std::tuple<at::Tensor, at::Tensor> FRNNBackwardCUDA(
     DispatchKernel1D<FRNNBackwardNDKernelFunctor, V0_MIN_D, V0_MAX_D>(
         D, blocks, threads, points1.contiguous().data_ptr<float>(),
         points2.contiguous().data_ptr<float>(),
-        lengths1.contiguous().data_ptr<long>(),
-        lengths2.contiguous().data_ptr<long>(),
-        idxs.contiguous().data_ptr<long>(),
+        lengths1.contiguous().data_ptr<int64_t>(),
+        lengths2.contiguous().data_ptr<int64_t>(),
+        idxs.contiguous().data_ptr<int64_t>(),
         grad_dists.contiguous().data_ptr<float>(),
         grad_points1.data_ptr<float>(), grad_points2.data_ptr<float>(), N, P1,
         P2, K);
