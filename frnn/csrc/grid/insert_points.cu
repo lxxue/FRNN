@@ -1,7 +1,7 @@
 #include "grid/insert_points.h"
 
 __global__ void InsertPoints2DKernel(const float *__restrict__ points,
-                                     const long *__restrict__ lengths,
+                                     const int64_t *__restrict__ lengths,
                                      const float *__restrict__ params,
                                      int *__restrict__ grid_cnt,
                                      int *__restrict__ grid_cell,
@@ -35,7 +35,7 @@ __global__ void InsertPoints2DKernel(const float *__restrict__ points,
 
 /*
 __global__ void InsertPoints3DKernel(const float *__restrict__ points,
-                                     const long *__restrict__ lengths,
+                                     const int64_t *__restrict__ lengths,
                                      const float *__restrict__ params,
                                      int *__restrict__ grid_cnt,
                                      int *__restrict__ grid_cell,
@@ -74,7 +74,7 @@ __global__ void InsertPoints3DKernel(const float *__restrict__ points,
 
 template <int D>
 __global__ void InsertPointsNDKernel(const float *__restrict__ points,
-                                     const long *__restrict__ lengths,
+                                     const int64_t *__restrict__ lengths,
                                      const float *__restrict__ params,
                                      int *__restrict__ grid_cnt,
                                      int *__restrict__ grid_cell,
@@ -113,7 +113,7 @@ __global__ void InsertPointsNDKernel(const float *__restrict__ points,
 template <int D>
 struct InsertPointsNDKernelFunctor {
   static void run(int blocks, int threads, const float *__restrict__ points,
-                  const long *__restrict__ lengths,
+                  const int64_t *__restrict__ lengths,
                   const float *__restrict__ params, int *__restrict__ grid_cnt,
                   int *__restrict__ grid_cell, int *__restrict__ grid_idx,
                   int N, int P, int G) {
@@ -152,7 +152,7 @@ void InsertPointsCUDA(const at::Tensor points,   // (N, P, D)
   if (D == 2) {
     InsertPoints2DKernel<<<blocks, threads, 0, stream>>>(
         points.contiguous().data_ptr<float>(),
-        lengths.contiguous().data_ptr<long>(),
+        lengths.contiguous().data_ptr<int64_t>(),
         params.contiguous().data_ptr<float>(),
         grid_cnt.contiguous().data_ptr<int>(),
         grid_cell.contiguous().data_ptr<int>(),
@@ -161,7 +161,7 @@ void InsertPointsCUDA(const at::Tensor points,   // (N, P, D)
     // } else if (D == 3) {
     //   InsertPoints3DKernel<<<blocks, threads, 0, stream>>>(
     //       points.contiguous().data_ptr<float>(),
-    //       lengths.contiguous().data_ptr<long>(),
+    //       lengths.contiguous().data_ptr<int64_t>(),
     //       params.contiguous().data_ptr<float>(),
     //       grid_cnt.contiguous().data_ptr<int>(),
     //       grid_cell.contiguous().data_ptr<int>(),
@@ -170,7 +170,7 @@ void InsertPointsCUDA(const at::Tensor points,   // (N, P, D)
   } else {
     DispatchKernel1D<InsertPointsNDKernelFunctor, V0_MIN_D, V0_MAX_D>(
         D, blocks, threads, points.contiguous().data_ptr<float>(),
-        lengths.contiguous().data_ptr<long>(),
+        lengths.contiguous().data_ptr<int64_t>(),
         params.contiguous().data_ptr<float>(),
         grid_cnt.contiguous().data_ptr<int>(),
         grid_cell.contiguous().data_ptr<int>(),

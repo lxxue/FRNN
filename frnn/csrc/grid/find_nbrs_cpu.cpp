@@ -27,15 +27,15 @@ std::tuple<at::Tensor, at::Tensor> FindNbrsCPU(
 
   auto points1_a = points1.accessor<float, 3>();
   auto points2_a = points2.accessor<float, 3>();
-  auto lengths1_a = lengths1.accessor<long, 1>();
-  auto lengths2_a = lengths2.accessor<long, 1>();
+  auto lengths1_a = lengths1.accessor<int64_t, 1>();
+  auto lengths2_a = lengths2.accessor<int64_t, 1>();
   auto grid_off_a = grid_off.accessor<int, 2>();
   auto sorted_point_idx_a = sorted_point_idx.accessor<int, 2>();
 
   auto idxs = at::full({N, P1, K}, -1, lengths1.options());
   auto dists = at::full({N, P1, K}, -1, points1.options());
 
-  auto idxs_a = idxs.accessor<long, 3>();
+  auto idxs_a = idxs.accessor<int64_t, 3>();
   auto dists_a = dists.accessor<float, 3>();
 
   for (int n = 0; n < N; ++n) {

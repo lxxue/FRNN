@@ -2,7 +2,7 @@
 
 __global__ void CountingSort2DKernel(
     const float *__restrict__ points,   // (N, P, 2)
-    const long *__restrict__ lengths,   // (N,)
+    const int64_t *__restrict__ lengths,   // (N,)
     const int *__restrict__ grid_cell,  // (N, P)
     const int *__restrict__ grid_idx,   // (N, P)
     const int *__restrict__ grid_off,   // (N, G)
@@ -35,7 +35,7 @@ __global__ void CountingSort2DKernel(
 /*
 __global__ void CountingSort3DKernel(
     const float *__restrict__ points,      // (N, P, 3)
-    const long *__restrict__ lengths,      // (N,)
+    const int64_t *__restrict__ lengths,      // (N,)
     const int *__restrict__ grid_cell,     // (N, P)
     const int *__restrict__ grid_idx,      // (N, P)
     const int *__restrict__ grid_off,      // (N, G)
@@ -71,7 +71,7 @@ __global__ void CountingSort3DKernel(
 template <int D>
 __global__ void CountingSortNDKernel(
     const float *__restrict__ points,      // (N, P, 3)
-    const long *__restrict__ lengths,      // (N,)
+    const int64_t *__restrict__ lengths,      // (N,)
     const int *__restrict__ grid_cell,     // (N, P)
     const int *__restrict__ grid_idx,      // (N, P)
     const int *__restrict__ grid_off,      // (N, G)
@@ -105,7 +105,7 @@ __global__ void CountingSortNDKernel(
 template <int D>
 struct CountingSortNDKernelFunctor {
   static void run(int blocks, int threads, const float *__restrict__ points,
-                  const long *__restrict__ lengths,
+                  const int64_t *__restrict__ lengths,
                   const int *__restrict__ grid_cell,
                   const int *__restrict__ grid_idx,
                   const int *__restrict__ grid_off,
@@ -151,7 +151,7 @@ void CountingSortCUDA(const at::Tensor points, const at::Tensor lengths,
   if (D == 2) {
     CountingSort2DKernel<<<blocks, threads, 0, stream>>>(
         points.contiguous().data_ptr<float>(),
-        lengths.contiguous().data_ptr<long>(),
+        lengths.contiguous().data_ptr<int64_t>(),
         grid_cell.contiguous().data_ptr<int>(),
         grid_idx.contiguous().data_ptr<int>(),
         grid_off.contiguous().data_ptr<int>(),
@@ -160,7 +160,7 @@ void CountingSortCUDA(const at::Tensor points, const at::Tensor lengths,
   } else {
     // CountingSort3DKernel<<<blocks, threads, 0, stream>>>(
     //     points.contiguous().data_ptr<float>(),
-    //     lengths.contiguous().data_ptr<long>(),
+    //     lengths.contiguous().data_ptr<int64_t>(),
     //     grid_cell.contiguous().data_ptr<int>(),
     //     grid_idx.contiguous().data_ptr<int>(),
     //     grid_off.contiguous().data_ptr<int>(),
@@ -169,7 +169,7 @@ void CountingSortCUDA(const at::Tensor points, const at::Tensor lengths,
 
     DispatchKernel1D<CountingSortNDKernelFunctor, V0_MIN_D, V0_MAX_D>(
         D, blocks, threads, points.contiguous().data_ptr<float>(),
-        lengths.contiguous().data_ptr<long>(),
+        lengths.contiguous().data_ptr<int64_t>(),
         grid_cell.contiguous().data_ptr<int>(),
         grid_idx.contiguous().data_ptr<int>(),
         grid_off.contiguous().data_ptr<int>(),
