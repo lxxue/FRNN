@@ -17,6 +17,8 @@ def get_extensions():
     sources = [main_source] + sources
     sources += sources_cuda
     extra_compile_args = {"cxx": ["-std=c++14"]}
+    if parse_version(torch.__version__) >= parse_version('2.0.0'):
+        extra_compile_args['cxx'] = ['-std=c++17']
 
     nvcc_args = [
         "-DCUDA_HAS_FP16=1", "-D__CUDA_NO_HALF_OPERATORS__",
