@@ -3,6 +3,7 @@ import glob
 
 import torch
 from setuptools import find_packages, setup
+from pkg_resources import parse_version
 from torch.utils.cpp_extension import CUDA_HOME, CppExtension, CUDAExtension
 
 
